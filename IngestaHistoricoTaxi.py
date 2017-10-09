@@ -67,6 +67,7 @@ viajesdf = viajes.filter(viajes.Company.isNotNull()
 #    .agg({"Fare": "sum", "Tips": "sum", "Tolls": "sum", "Extras": "sum", "Trip_Total": "sum", "Trip_ID": "count"})\
 #    .orderBy("count(Trip_ID)", ascending=False)
 
+# Agrupación por empresa, fecha, hora y zona
 agrupadoCompanyDayHourArea = viajesdf.groupBy("Company", "Trip_Start_Date", "Trip_Start_Hour", "Pickup_Community_Area") \
     .agg(F.sum("Fare").alias("TotalFare"),
          F.sum("Tips").alias("TotalTips"),
@@ -80,7 +81,7 @@ agrupadoCompanyDayHourArea = viajesdf.groupBy("Company", "Trip_Start_Date", "Tri
 #    .agg({"Fare": "sum", "Tips": "sum", "Tolls": "sum", "Extras": "sum", "Trip_Total": "sum", "Trip_ID": "count", "Taxi_ID": "countDistinct"})\
 #    .orderBy("count(Trip_ID)", ascending=False)
 
-
+print agrupadoCompanyDayHourArea.count()
 agrupadoCompanyDayHourArea.show(10)
 
 #agrupado.write.jdbc
