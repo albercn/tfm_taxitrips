@@ -76,12 +76,25 @@ agrupadoCompanyDayHourArea = viajesdf.groupBy("Company", "Trip_Start_Date", "Tri
          F.sum("Trip_Total").alias("TotalTripTotal"),
          F.count("Trip_ID").alias("Trips"),
          F.countDistinct("Taxi_ID").alias("Taxis")) \
-    .orderBy("Trips", ascending=False)
+    .orderBy(["Trip_Start_Date", "Trip_Start_Hour", "Company", "Pickup_Community_Area"], ascending=[True, True, True, True])
 
-#    .agg({"Fare": "sum", "Tips": "sum", "Tolls": "sum", "Extras": "sum", "Trip_Total": "sum", "Trip_ID": "count", "Taxi_ID": "countDistinct"})\
-#    .orderBy("count(Trip_ID)", ascending=False)
+# Agrupación por zona, fecha, hora
+agrupadoDayHourArea = viajesdf.groupBy("Trip_Start_Date", "Trip_Start_Hour", "Pickup_Community_Area") \
+       .agg(F.sum("Fare").alias("TotalFare"),
+         F.sum("Tips").alias("TotalTips"),
+         F.sum("Tolls").alias("TotalTolls"),
+         F.sum("Extras").alias("TotalExtras"),
+         F.sum("Trip_Total").alias("TotalTripTotal"),
+         F.count("Trip_ID").alias("Trips"),
+         F.countDistinct("Taxi_ID").alias("Taxis")) \
+    .orderBy(["Trip_Start_Date", "Trip_Start_Hour", "Pickup_Community_Area"], ascending=[True, True, True])
 
-print agrupadoCompanyDayHourArea.count()
+
+print "CompanyDayHourArea: " + str(agrupadoCompanyDayHourArea.count())
 agrupadoCompanyDayHourArea.show(10)
+
+
+print "DayHourArea: " + str(agrupadoDayHourArea.count())
+agrupadoDayHourArea.show(10)
 
 #agrupado.write.jdbc
