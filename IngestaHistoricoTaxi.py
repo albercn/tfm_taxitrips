@@ -97,7 +97,7 @@ agrupadoDayTaxiCompanyArea = viajesdf.groupBy("Trip_Start_Date", "Taxi_ID", "Com
          F.count("Trip_ID").alias("Trips"))
 
 # Escritura en BBDD
-agrupadoCompanyDayHourArea.write.jdbc(url='jdbc:postgresql://localhost:5432/mydb', table='taxis_zones_day_view', mode='overwrite', properties={'user': 'albercn', 'password': 'albercn'})
+agrupadoDayTaxiCompanyArea.write.jdbc(url='jdbc:postgresql://localhost:5432/mydb', table='taxis_zones_day_view', mode='overwrite', properties={'user': 'albercn', 'password': 'albercn'})
 
 
 # Agrupación por fecha, hora, taxi y empresa
@@ -108,8 +108,9 @@ agrupadoDayHourTaxiCompany = viajesdf.groupBy("Trip_Start_Date", "Trip_Start_Hou
          F.sum("Extras").alias("TotalExtras"),
          F.sum("Trip_Total").alias("TotalTripTotal"),
          F.count("Trip_ID").alias("Trips"))
+
 # Escritura en BBDD
-agrupadoCompanyDayHourArea.write.jdbc(url='jdbc:postgresql://localhost:5432/mydb', table='taxis_view', mode='overwrite', properties={'user': 'albercn', 'password': 'albercn'})
+agrupadoDayHourTaxiCompany.write.jdbc(url='jdbc:postgresql://localhost:5432/mydb', table='taxis_view', mode='overwrite', properties={'user': 'albercn', 'password': 'albercn'})
 
 
 
