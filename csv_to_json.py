@@ -5,7 +5,7 @@ import os
 import csv
 import json
 
-fileName = os.path.join('data_source', 'Taxi_Trips_2017.csv')
+fileName = os.path.join('data_source/2017', 'Taxi_Trips_2017.csv')
 fileNameOut = os.path.join('data_source', 'Taxi_Trips_2017.json')
 
 infile = open(fileName, 'r')
