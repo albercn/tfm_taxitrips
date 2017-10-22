@@ -10,7 +10,7 @@ import datetime
 from pyspark.streaming.kafka import KafkaUtils
 from pyspark.sql import SparkSession, Column
 from pyspark.sql.types import MapType, StringType, TimestampType, IntegerType, StructField, StructType, DoubleType
-from pyspark.sql.functions import from_json, regexp_replace, date_format
+from pyspark.sql.functions import from_json, regexp_replace, to_json, struct
 from kafka import KafkaProducer
 
 # Validación del número de parametros de entrada introducidos
@@ -141,8 +141,18 @@ taxiTripsEnrich.printSchema()
 # kstJoin.foreachRDD(lambda rdd: rdd.foreachPartition(sendPartition()))
 
 # Inicio
-query = taxiTripsEnrich.writeStream \
-    .format("console") \
+query = taxiTripsEnrich\
+    .select(taxiTripsEnrich["Trip_ID"].astype('string').alias("key"),
+            to_json(struct("*")).alias("value"))\
+    .writeStream \
+    .format("kafka") \
+    .option("kafka.bootstrap.servers", "localhost:9092") \
+    .option("topic", "outTopic") \
+    .option("checkpointLocation", "hdfs://localhost:9000/checkpointKafka") \
+    .outputMode("Append") \
     .start()
 
 query.awaitTermination()
+
+
+
