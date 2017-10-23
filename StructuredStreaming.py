@@ -146,7 +146,7 @@ query = taxiTripsEnrich\
             to_json(struct("*")).alias("value"))\
     .writeStream \
     .format("kafka") \
-    .option("kafka.bootstrap.servers", "localhost:9092") \
+    .option("kafka.bootstrap.servers", brokers) \
     .option("topic", "outTopic") \
     .option("checkpointLocation", "hdfs://localhost:9000/checkpointKafka") \
     .outputMode("Append") \
