@@ -4,23 +4,20 @@
 from __future__ import print_function
 
 import sys
-import json
-import datetime
 
-from pyspark.streaming.kafka import KafkaUtils
-from pyspark.sql import SparkSession, Column
-from pyspark.sql.types import MapType, StringType, TimestampType, IntegerType, StructField, StructType, DoubleType
+from pyspark.sql import SparkSession
+from pyspark.sql.types import StringType, TimestampType, IntegerType, StructField, StructType
 from pyspark.sql.functions import from_json, regexp_replace, to_json, struct
-from kafka import KafkaProducer
+
 
 # Validación del número de parametros de entrada introducidos
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: Streaming.py.py <broker_list> <topic>", file=sys.stderr)
+    if len(sys.argv) != 4:
+        print("Usage: Streaming.py <broker_list> <inTopic> <outTopic>", file=sys.stderr)
         exit(-1)
 
 # Obtenemos la url del broker y el topic de entrada
-brokers, topic = sys.argv[1:]
+brokers, inTopic, outTopic = sys.argv[1:]
 
 
 # Obtención de la instancia de SparkSession
@@ -49,12 +46,11 @@ schemaAreas = StructType([
 # Lectura del fichero
 areas = sparkSession.read.csv(path="hdfs://localhost:9000/areas/", header=True, schema=schemaAreas,
                             mode="DROPMALFORMED") \
-    .select("AREA_NUMBER", "COMMUNITY", "the_geom")
+    .select("AREA_NUMBER", "COMMUNITY")
 # Creación del dataframe para cruzar con TaxiTrips por Pickup_Community_Area
 pickupAreas = areas.select(
     areas["AREA_NUMBER"].alias('Pickup_Community_Area'),
-    areas["COMMUNITY"].alias('Pickup_Community_Area_Name'),
-    "the_geom"
+    areas["COMMUNITY"].alias('Pickup_Community_Area_Name')
 )
 # Creación del dataframe para cruzar con TaxiTrips por Dropoff_Community_Area
 dropoffAreas = areas.select(
@@ -93,12 +89,12 @@ schemaJsonTaxiTrips = StructType()\
 tripTimestampFormat = "MM/dd/yyyy hh:mm:ss a"
 jsonOptions = {"timestampFormat": tripTimestampFormat}
 
-# Create DataSet representing the stream of input lines from kafka
+# Creación del DataFrame que representa el stream de viajes en taxi
 kst = sparkSession\
         .readStream\
         .format("kafka")\
         .option("kafka.bootstrap.servers", brokers)\
-        .option("subscribe", topic)\
+        .option("subscribe", inTopic)\
         .load()\
         .selectExpr("CAST(value AS STRING)")
 
@@ -130,29 +126,31 @@ taxiTripsFormated = taxiTripsRaw.select("Trip_ID",
             "Dropoff_Centroid_Longitude",
             "Dropoff_Centroid_Location")
 
+# Enriquecemos el Stream con los nombres de los areas de inicio y fin
 taxiTripsEnrich = taxiTripsFormated.join(pickupAreas, 'Pickup_Community_Area')\
     .join(dropoffAreas, 'Dropoff_Community_Area')
 
-taxiTripsEnrich.printSchema()
 
-# kstJoin = kst.join(DataFrame(areasdf).rdd)
-
-# Aplicamos la función sendPartition a cada partición de cada RDD
-# kstJoin.foreachRDD(lambda rdd: rdd.foreachPartition(sendPartition()))
-
-# Inicio
-query = taxiTripsEnrich\
+# Inicio del aquery que escribe el resultado a kafka
+queryToKafka = taxiTripsEnrich\
     .select(taxiTripsEnrich["Trip_ID"].astype('string').alias("key"),
             to_json(struct("*")).alias("value"))\
     .writeStream \
     .format("kafka") \
     .option("kafka.bootstrap.servers", brokers) \
-    .option("topic", "outTopic") \
-    .option("checkpointLocation", "hdfs://localhost:9000/checkpointKafka") \
+    .option("topic", outTopic) \
+    .option("checkpointLocation", "hdfs://localhost:9000/TaxiTrips/checkpointKafka") \
     .outputMode("Append") \
     .start()
 
-query.awaitTermination()
-
-
-
+# Inicio de la query que escribe los eventos a HDFS
+"""
+queryToHDFS = taxiTripsRaw.writeStream \
+  .format("parquet") \
+  .option("path", "hdfs://localhost:9000/TaxiTrips/rawEvents") \
+  .option("checkpointLocation", "hdfs://localhost:9000/TaxiTrips/checkpointHDFS") \
+  .outputMode("Append") \
+  .start()
+"""
+queryToKafka.awaitTermination()
+#queryToHDFS.awaitTermination()
