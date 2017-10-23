@@ -10,9 +10,7 @@ sparkSession = SparkSession\
                 .master("local")\
                 .appName("IngestaHistoricoTaxi") \
                 .getOrCreate()
-#                .config("spark.sql.warehouse.dir", '/home/bigdata/opt/hive/warehouse') \
-#                .enableHiveSupport()\
-#                .getOrCreate()
+
 
 # Lectura del fichero con el historico fichero Taxi_Trips_2017.csv
 # Creamos el esquema del dataframe
@@ -42,7 +40,10 @@ schemaTaxiTrips = StructType([
     StructField("Dropoff_Centroid_Location", StringType(), True)
 ])
 
-viajes = sparkSession.read.csv(path="/home/albercn/PycharmProjects/TFM_TaxiTrips/data_source/2017/", header=True, schema=schemaTaxiTrips, timestampFormat="MM/dd/yyyy hh:mm:ss a", mode="DROPMALFORMED")
+viajes = sparkSession.read.csv(path="file:///home/albercn/PycharmProjects/TFM_TaxiTrips/data_source/2017/", header=True,
+                               schema=schemaTaxiTrips, timestampFormat="MM/dd/yyyy hh:mm:ss a", mode="DROPMALFORMED")
+
+
 
 
 viajesdf = viajes.filter(viajes.Company.isNotNull() & viajes.Pickup_Community_Area.isNotNull())\
@@ -60,6 +61,7 @@ viajesdf = viajes.filter(viajes.Company.isNotNull() & viajes.Pickup_Community_Ar
     "Pickup_Centroid_Longitude", "Pickup_Centroid_Location", "Dropoff_Centroid_Latitude", "Dropoff_Centroid_Longitude",
     "Dropoff_Centroid_Location")
 
+viajesdf.show(10)
 
 # Agrupación por fecha, hora, empresa y zona
 agrupadoCompanyDayHourArea = viajesdf.groupBy("Trip_Start_Date", "Trip_Start_Hour", "Company", "Pickup_Community_Area")\
