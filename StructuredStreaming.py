@@ -32,30 +32,28 @@ sparkSession = SparkSession\
 # Lectura del fichero con los areas Taxi_Trips_2017.csv
 # Creamos el esquema del dataframe
 schemaAreas = StructType([
-    StructField("the_geom", StringType(), True),
-    StructField("PERIMETER", StringType(), True),
-    StructField("AREA", StringType(), True),
-    StructField("COMAREA_", StringType(), True),
-    StructField("COMAREA_ID", StringType(), True),
-    StructField("AREA_NUMBER", IntegerType(), False),
-    StructField("COMMUNITY", StringType(), False),
-    StructField("AREA_NUM_1", IntegerType(), True),
-    StructField("SHAPE_AREA", StringType(), True),
-    StructField("SHAPE_LEN", StringType(), True)
+    StructField("Area_Number", IntegerType(), False),
+    StructField("Community", StringType(), False),
+    StructField("Area_Centroid_Latitude", StringType(), True),
+    StructField("Area_Centroid_Longitude", StringType(), True),
+    StructField("The_Geom", StringType(), True)
 ])
 # Lectura del fichero
 areas = sparkSession.read.csv(path="hdfs://localhost:9000/areas/", header=True, schema=schemaAreas,
-                            mode="DROPMALFORMED") \
-    .select("AREA_NUMBER", "COMMUNITY")
+                            mode="DROPMALFORMED")
 # Creación del dataframe para cruzar con TaxiTrips por Pickup_Community_Area
 pickupAreas = areas.select(
-    areas["AREA_NUMBER"].alias('Pickup_Community_Area'),
-    areas["COMMUNITY"].alias('Pickup_Community_Area_Name')
+    areas["Area_Number"].alias('Pickup_Community_Area'),
+    areas["Community"].alias('Pickup_Community_Area_Name'),
+    areas["Area_Centroid_Latitude"].alias('Pickup_Centroid_Latitude'),
+    areas["Area_Centroid_Longitude"].alias('Pickup_Centroid_Longitude')
 )
 # Creación del dataframe para cruzar con TaxiTrips por Dropoff_Community_Area
 dropoffAreas = areas.select(
-    areas["AREA_NUMBER"].alias('Dropoff_Community_Area'),
-    areas["COMMUNITY"].alias('Dropoff_Community_Area_Name')
+    areas["Area_Number"].alias('Dropoff_Community_Area'),
+    areas["Community"].alias('Dropoff_Community_Area_Name'),
+    areas["Area_Centroid_Latitude"].alias('Dropoff_Centroid_Latitude'),
+    areas["Area_Centroid_Longitude"].alias('Dropoff_Centroid_Longitude')
 )
 
 
@@ -109,28 +107,20 @@ taxiTripsFormated = taxiTripsRaw.select("Trip_ID",
             "Trip_End_Timestamp",
             taxiTripsRaw["Trip_Seconds"].astype('integer').alias("Trip_Seconds"),
             taxiTripsRaw["Trip_Miles"].astype('integer').alias("Trip_Miles"),
-            "Pickup_Census_Tract",
-            "Dropoff_Census_Tract",
             taxiTripsRaw["Pickup_Community_Area"].astype('integer').alias("Pickup_Community_Area"),
             taxiTripsRaw["Dropoff_Community_Area"].astype('integer').alias("Dropoff_Community_Area"),
             regexp_replace(taxiTripsRaw["Fare"], '[\$,)]', '').astype('double').alias("Fare"),
             regexp_replace(taxiTripsRaw["Tips"], '[\$,)]', '').astype('double').alias("Tips"),
             regexp_replace(taxiTripsRaw["Tolls"], '[\$,)]', '').astype('double').alias("Tolls"),
             regexp_replace(taxiTripsRaw["Extras"], '[\$,)]', '').astype('double').alias("Extras"),
-            regexp_replace(taxiTripsRaw["Trip_Total"], '[\$,)]', '').astype('double').alias("Trip_Total"),
-            "Payment Type",
-            "Pickup_Centroid_Latitude",
-            "Pickup_Centroid_Longitude",
-            "Pickup_Centroid_Location",
-            "Dropoff_Centroid_Latitude",
-            "Dropoff_Centroid_Longitude",
-            "Dropoff_Centroid_Location")
+            regexp_replace(taxiTripsRaw["Trip_Total"], '[\$,)]', '').astype('double').alias("Trip_Total")
+            )
 
 # Enriquecemos el Stream con los nombres de los areas de inicio y fin
 taxiTripsEnrich = taxiTripsFormated.join(pickupAreas, 'Pickup_Community_Area')\
     .join(dropoffAreas, 'Dropoff_Community_Area')
 
-
+taxiTripsEnrich.printSchema()
 # Inicio del aquery que escribe el resultado a kafka
 queryToKafka = taxiTripsEnrich\
     .select(taxiTripsEnrich["Trip_ID"].astype('string').alias("key"),

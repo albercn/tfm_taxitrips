@@ -8,7 +8,7 @@ from pyspark.sql.types import StringType, TimestampType, IntegerType, StructFiel
 sparkSession = SparkSession\
                 .builder\
                 .master("local")\
-                .appName("IngestaHistoricoTaxi") \
+                .appName("AreasLoc") \
                 .getOrCreate()
 #                .config("spark.sql.warehouse.dir", '/home/bigdata/opt/hive/warehouse') \
 #                .enableHiveSupport()\
@@ -45,10 +45,33 @@ schemaTaxiTrips = StructType([
 viajes = sparkSession.read.csv(path="file:///home/albercn/PycharmProjects/TFM_TaxiTrips/data_source/2017/", header=True,
                                schema=schemaTaxiTrips, timestampFormat="MM/dd/yyyy hh:mm:ss a", mode="DROPMALFORMED")
 
-areasdf = viajes.filter(viajes.Company.isNotNull() & viajes.Pickup_Community_Area.isNotNull()
+areasLoc = viajes.filter(viajes.Company.isNotNull() & viajes.Pickup_Community_Area.isNotNull()
                          & viajes.Pickup_Census_Tract.isNull())\
-    .select("Pickup_Community_Area", "Pickup_Centroid_Location").dropDuplicates()
+    .select(
+        viajes["Pickup_Community_Area"].alias("Area_Number"),
+        viajes["Pickup_Centroid_Latitude"].alias("Area_Centroid_Latitude"),
+        viajes["Pickup_Centroid_Longitude"].alias("Area_Centroid_Longitude")
+    ).dropDuplicates()
 
-areasdf.coalesce(1).write.csv(path="file:///home/albercn/PycharmProjects/TFM_TaxiTrips/data_source/areasLoc", mode='overwrite')
+# Creamos el esquema del dataframe
+schemaAreas = StructType([
+    StructField("The_Geom", StringType(), True),
+    StructField("Perimeter", StringType(), True),
+    StructField("area", StringType(), True),
+    StructField("Comarea_", StringType(), True),
+    StructField("Comarea_Id", StringType(), True),
+    StructField("Area_Number", IntegerType(), False),
+    StructField("Community", StringType(), False),
+    StructField("Area_Num_1", IntegerType(), True),
+    StructField("Shape_Area", StringType(), True),
+    StructField("Shape_Len", StringType(), True)
+])
+# Lectura del fichero
+areas = sparkSession.read.csv(path="file:///home/albercn/PycharmProjects/TFM_TaxiTrips/data_source/CommAreas.csv",
+                              header=False, schema=schemaAreas, mode="DROPMALFORMED", sep=";")
 
+areasComplete = areas.join(areasLoc, "Area_Number").select("Area_Number", "Community", "Area_Centroid_Latitude",
+                                                           "Area_Centroid_Longitude", "The_Geom")
 
+areasComplete.coalesce(1).write.csv(path="file:///home/albercn/PycharmProjects/TFM_TaxiTrips/data_source/areasComplete",
+                                    mode='overwrite')
