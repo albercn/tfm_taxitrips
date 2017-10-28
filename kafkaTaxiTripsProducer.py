@@ -14,6 +14,8 @@ infile = open(fileName, 'r')
 for line in infile:
     lineJson = json.loads(line)
 
+    if lineJson['Trip_Seconds'] == '':
+        lineJson['Trip_Seconds'] = 0
     duration = datetime.timedelta(seconds=int(lineJson['Trip_Seconds']))
     t = datetime.datetime.now()
     end = t + duration
@@ -25,6 +27,6 @@ for line in infile:
 
     producer.send(topic="rawTopic", value=strLineJson)
 
-    time.sleep(0.5)
+    time.sleep(0.1)
 
 infile.close()
