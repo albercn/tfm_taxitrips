@@ -10,9 +10,6 @@ sparkSession = SparkSession\
                 .master("local")\
                 .appName("AreasLoc") \
                 .getOrCreate()
-#                .config("spark.sql.warehouse.dir", '/home/bigdata/opt/hive/warehouse') \
-#                .enableHiveSupport()\
-#                .getOrCreate()
 
 # Lectura del fichero con el historico fichero Taxi_Trips_2017.csv
 # Creamos el esquema del dataframe
