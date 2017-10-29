@@ -60,8 +60,8 @@ taxiTrips = sparkSession.read.csv(path=filePath, header=True, schema=schemaTaxiT
 
 taxiTripsdf = taxiTrips.filter(taxiTrips.Company.isNotNull() & taxiTrips.Pickup_Community_Area.isNotNull())\
     .select("Trip_ID", "Taxi_ID", "Company",
+    F.to_timestamp(F.date_format("Trip_Start_Timestamp", "yyyy-MM-dd hh:00:00").cast('string')).alias("Trip_Start_Date_Hour"),
     F.to_date(F.date_format("Trip_Start_Timestamp", "yyyy-MM-dd")).alias("Trip_Start_Date"),
-    F.hour("Trip_Start_Timestamp").alias("Trip_Start_Hour"),
     "Trip_Seconds", "Trip_Miles",
     "Pickup_Census_Tract", "Dropoff_Census_Tract", "Pickup_Community_Area", "Dropoff_Community_Area",
     F.regexp_replace(taxiTrips["Fare"], '[\$,)]', '').astype('double').alias("Fare"),
@@ -107,7 +107,7 @@ taxiTripsEnrich = taxiTripsdf.join(pickupAreas, 'Pickup_Community_Area')\
 
 
 # Agrupación por fecha, hora, empresa y zona
-groupByCompanyDayHourArea = taxiTripsEnrich.groupBy("Trip_Start_Date", "Trip_Start_Hour", "Company",
+groupByCompanyDayHourArea = taxiTripsEnrich.groupBy("Trip_Start_Date_Hour", "Company",
                                                 "Pickup_Community_Area", "Pickup_Community_Area_Name",
                                                 "Pickup_Centroid_Latitude", "Pickup_Centroid_Longitude")\
     .agg(F.sum("Fare").alias("TotalFare"),
@@ -123,16 +123,16 @@ groupByCompanyDayHourArea.write.jdbc(url='jdbc:postgresql://localhost:5432/mydb'
                                      mode='append', properties={'user': 'albercn', 'password': 'albercn'})
 
 # Agrupación por fecha, hora y zona
-groupByDayHourArea = taxiTripsEnrich.groupBy("Trip_Start_Date", "Trip_Start_Hour", "Pickup_Community_Area",
+groupByDayHourArea = taxiTripsEnrich.groupBy("Trip_Start_Date_Hour", "Pickup_Community_Area",
                                          "Pickup_Community_Area_Name", "Pickup_Centroid_Latitude",
                                          "Pickup_Centroid_Longitude")\
        .agg(F.sum("Fare").alias("TotalFare"),
-         F.sum("Tips").alias("TotalTips"),
-         F.sum("Tolls").alias("TotalTolls"),
-         F.sum("Extras").alias("TotalExtras"),
-         F.sum("Trip_Total").alias("TotalTripTotal"),
-         F.count("Trip_ID").alias("Trips"),
-         F.countDistinct("Taxi_ID").alias("Taxis"))
+            F.sum("Tips").alias("TotalTips"),
+            F.sum("Tolls").alias("TotalTolls"),
+            F.sum("Extras").alias("TotalExtras"),
+            F.sum("Trip_Total").alias("TotalTripTotal"),
+            F.count("Trip_ID").alias("Trips"),
+            F.countDistinct("Taxi_ID").alias("Taxis"))
 # Escritura en BBDD
 groupByDayHourArea.write.jdbc(url='jdbc:postgresql://localhost:5432/mydb', table='pickup_area_view', mode='append',
                               properties={'user': 'albercn', 'password': 'albercn'})
@@ -143,28 +143,27 @@ groupByDayTaxiCompanyArea = taxiTripsEnrich.groupBy("Trip_Start_Date", "Taxi_ID"
                                                 "Pickup_Community_Area_Name", "Pickup_Centroid_Latitude",
                                                 "Pickup_Centroid_Longitude")\
        .agg(F.sum("Fare").alias("TotalFare"),
-         F.sum("Tips").alias("TotalTips"),
-         F.sum("Tolls").alias("TotalTolls"),
-         F.sum("Extras").alias("TotalExtras"),
-         F.sum("Trip_Total").alias("TotalTripTotal"),
-         F.count("Trip_ID").alias("Trips"))
+            F.sum("Tips").alias("TotalTips"),
+            F.sum("Tolls").alias("TotalTolls"),
+            F.sum("Extras").alias("TotalExtras"),
+            F.sum("Trip_Total").alias("TotalTripTotal"),
+            F.count("Trip_ID").alias("Trips"))
 
 # Escritura en BBDD
 groupByDayTaxiCompanyArea.write.jdbc(url='jdbc:postgresql://localhost:5432/mydb', table='taxi_pickup_area_day_view',
                                      mode='append', properties={'user': 'albercn', 'password': 'albercn'})
 
 # Agrupación por fecha, hora, taxi y empresa
-groupByDayHourTaxiCompany = taxiTripsEnrich.groupBy("Trip_Start_Date", "Trip_Start_Hour", "Taxi_ID", "Company")\
+groupByDayHourTaxiCompany = taxiTripsEnrich.groupBy("Trip_Start_Date_Hour", "Taxi_ID", "Company")\
        .agg(F.sum("Fare").alias("TotalFare"),
-         F.sum("Tips").alias("TotalTips"),
-         F.sum("Tolls").alias("TotalTolls"),
-         F.sum("Extras").alias("TotalExtras"),
-         F.sum("Trip_Total").alias("TotalTripTotal"),
-         F.count("Trip_ID").alias("Trips"))
+            F.sum("Tips").alias("TotalTips"),
+            F.sum("Tolls").alias("TotalTolls"),
+            F.sum("Extras").alias("TotalExtras"),
+            F.sum("Trip_Total").alias("TotalTripTotal"),
+            F.count("Trip_ID").alias("Trips"))
 
 # Escritura en BBDD
 groupByDayHourTaxiCompany.write.jdbc(url='jdbc:postgresql://localhost:5432/mydb', table='taxis_view', mode='append', 
                                      properties={'user': 'albercn', 'password': 'albercn'})
-
 
 
