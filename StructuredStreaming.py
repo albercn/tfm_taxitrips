@@ -7,7 +7,7 @@ import sys
 
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StringType, TimestampType, IntegerType, StructField, StructType
-from pyspark.sql.functions import from_json, regexp_replace, to_json, struct
+from pyspark.sql.functions import from_json, regexp_replace, to_json, struct, year, month, dayofmonth
 
 
 # Validación del número de parametros de entrada introducidos
@@ -19,15 +19,10 @@ if __name__ == "__main__":
 # Obtenemos la url del broker y el topic de entrada
 brokers, inTopic, outTopic = sys.argv[1:]
 
-
-# Obtención de la instancia de SparkSession
-# sparkSession = getSparkSessionInstance(sc.getConf())
-
 sparkSession = SparkSession\
         .builder\
         .appName("StructuredStreamingTaxis")\
         .getOrCreate()
-
 
 # Lectura del fichero con los areas Taxi_Trips_2017.csv
 # Creamos el esquema del dataframe
@@ -39,7 +34,7 @@ schemaAreas = StructType([
     StructField("The_Geom", StringType(), True)
 ])
 # Lectura del fichero
-areas = sparkSession.read.csv(path="hdfs://localhost:9000/areas/", header=True, schema=schemaAreas,
+areas = sparkSession.read.csv(path="hdfs://localhost:9000/TaxiTrips/areas/", header=True, schema=schemaAreas,
                             mode="DROPMALFORMED")
 # Creación del dataframe para cruzar con TaxiTrips por Pickup_Community_Area
 pickupAreas = areas.select(
@@ -59,7 +54,7 @@ dropoffAreas = areas.select(
 
 # Creamos el esquema del json
 schemaJsonTaxiTrips = StructType()\
-    .add("Payment Type", StringType())\
+    .add("Payment_Type", StringType())\
     .add("Dropoff_Census_Tract", StringType())\
     .add("Tolls", StringType())\
     .add("Trip_Total", StringType())\
@@ -98,8 +93,36 @@ kst = sparkSession\
 
 parsed = kst.select(from_json(kst.value, schemaJsonTaxiTrips, jsonOptions).alias("parsed_value"))
 
-taxiTripsRaw = parsed.select("parsed_value.*")
+taxiTripsRaw = parsed.select("parsed_value.*")\
 
+taxiTripsToHDFS = taxiTripsRaw.select(
+    "Trip_ID",
+    "Taxi_ID",
+    "Trip_Start_Timestamp",
+    "Trip_End_Timestamp",
+    "Trip_Seconds",
+    "Trip_Miles",
+    "Pickup_Census_Tract",
+    "Dropoff_Census_Tract",
+    "Pickup_Community_Area",
+    "Dropoff_Community_Area",
+    "Fare",
+    "Tips",
+    "Tolls",
+    "Extras",
+    "Trip_Total",
+    "Payment_Type",
+    "Company",
+    "Pickup_Centroid_Latitude",
+    "Pickup_Centroid_Longitude",
+    "Pickup_Centroid_Location",
+    "Dropoff_Centroid_Latitude",
+    "Dropoff_Centroid_Longitude",
+    "Dropoff_Centroid_Location",
+    year(taxiTripsRaw["Trip_Start_Timestamp"]).alias("year"),
+    month(taxiTripsRaw["Trip_Start_Timestamp"]).alias("month"),
+    dayofmonth(taxiTripsRaw["Trip_Start_Timestamp"]).alias("day")
+)
 taxiTripsFormated = taxiTripsRaw.select("Trip_ID",
             "Taxi_ID",
             "Company",
@@ -120,10 +143,9 @@ taxiTripsFormated = taxiTripsRaw.select("Trip_ID",
 taxiTripsEnrich = taxiTripsFormated.join(pickupAreas, 'Pickup_Community_Area')\
     .join(dropoffAreas, 'Dropoff_Community_Area')
 
-taxiTripsEnrich.printSchema()
 # Inicio del aquery que escribe el resultado a kafka
 queryToKafka = taxiTripsEnrich\
-    .select(taxiTripsEnrich["Trip_ID"].astype('string').alias("key"),
+    .select(taxiTripsEnrich["Trip_Start_Timestamp"].astype('string').alias("key"),
             to_json(struct("*")).alias("value"))\
     .writeStream \
     .format("kafka") \
@@ -134,13 +156,14 @@ queryToKafka = taxiTripsEnrich\
     .start()
 
 # Inicio de la query que escribe los eventos a HDFS
-"""
-queryToHDFS = taxiTripsRaw.writeStream \
-  .format("parquet") \
-  .option("path", "hdfs://localhost:9000/TaxiTrips/rawEvents") \
-  .option("checkpointLocation", "hdfs://localhost:9000/TaxiTrips/checkpointHDFS") \
-  .outputMode("Append") \
-  .start()
-"""
+
+queryToHDFS = taxiTripsToHDFS.writeStream \
+        .format("parquet") \
+        .partitionBy("year", "month", "day") \
+        .option("path", "hdfs://localhost:9000/TaxiTrips/rawEvents") \
+        .option("checkpointLocation", "hdfs://localhost:9000/TaxiTrips/checkpointHDFS") \
+        .outputMode("Append") \
+        .start()
+
 queryToKafka.awaitTermination()
-#queryToHDFS.awaitTermination()
+queryToHDFS.awaitTermination()
