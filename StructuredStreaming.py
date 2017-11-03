@@ -27,56 +27,56 @@ sparkSession = SparkSession\
 # Lectura del fichero con los areas Taxi_Trips_2017.csv
 # Creamos el esquema del dataframe
 schemaAreas = StructType([
-    StructField("Area_Number", IntegerType(), False),
-    StructField("Community", StringType(), False),
-    StructField("Area_Centroid_Latitude", StringType(), True),
-    StructField("Area_Centroid_Longitude", StringType(), True),
-    StructField("The_Geom", StringType(), True)
+    StructField("area_number", IntegerType(), False),
+    StructField("community", StringType(), False),
+    StructField("area_centroid_latitude", StringType(), True),
+    StructField("area_centroid_longitude", StringType(), True),
+    StructField("the_geom", StringType(), True)
 ])
 # Lectura del fichero
 areas = sparkSession.read.csv(path="hdfs://localhost:9000/TaxiTrips/areas/", header=True, schema=schemaAreas,
                             mode="DROPMALFORMED")
-# Creación del dataframe para cruzar con TaxiTrips por Pickup_Community_Area
+# Creación del dataframe para cruzar con TaxiTrips por pickup_community_area
 pickupAreas = areas.select(
-    areas["Area_Number"].alias('Pickup_Community_Area'),
-    areas["Community"].alias('Pickup_Community_Area_Name'),
-    areas["Area_Centroid_Latitude"].alias('Pickup_Centroid_Latitude'),
-    areas["Area_Centroid_Longitude"].alias('Pickup_Centroid_Longitude')
+    areas["area_Number"].alias('pickup_community_area'),
+    areas["community"].alias('pickup_community_area_name'),
+    areas["area_centroid_latitude"].alias('pickup_centroid_latitude'),
+    areas["area_centroid_longitude"].alias('pickup_centroid_longitude')
 )
-# Creación del dataframe para cruzar con TaxiTrips por Dropoff_Community_Area
+# Creación del dataframe para cruzar con TaxiTrips por dropoff_community_area
 dropoffAreas = areas.select(
-    areas["Area_Number"].alias('Dropoff_Community_Area'),
-    areas["Community"].alias('Dropoff_Community_Area_Name'),
-    areas["Area_Centroid_Latitude"].alias('Dropoff_Centroid_Latitude'),
-    areas["Area_Centroid_Longitude"].alias('Dropoff_Centroid_Longitude')
+    areas["area_Number"].alias('dropoff_community_area'),
+    areas["community"].alias('dropoff_community_area_name'),
+    areas["area_centroid_latitude"].alias('dropoff_centroid_latitude'),
+    areas["area_centroid_longitude"].alias('dropoff_centroid_longitude')
 )
 
 
 # Creamos el esquema del json
 schemaJsonTaxiTrips = StructType()\
-    .add("Payment_Type", StringType())\
-    .add("Dropoff_Census_Tract", StringType())\
-    .add("Tolls", StringType())\
-    .add("Trip_Total", StringType())\
-    .add("Dropoff_Centroid_Latitude", StringType())\
-    .add("Fare", StringType())\
-    .add("Tips", StringType())\
-    .add("Pickup_Census_Tract", StringType())\
-    .add("Company", StringType())\
-    .add("Trip_Start_Timestamp", TimestampType())\
-    .add("Trip_Miles", StringType())\
-    .add("Dropoff_Community_Area", StringType())\
-    .add("Taxi_ID", StringType())\
-    .add("Trip_ID", StringType())\
-    .add("Pickup_Centroid_Latitude", StringType())\
-    .add("Extras", StringType())\
-    .add("Dropoff_Centroid_Location", StringType())\
-    .add("Trip_Seconds", StringType())\
-    .add("Pickup_Centroid_Location", StringType())\
-    .add("Trip_End_Timestamp", TimestampType())\
-    .add("Pickup_Community_Area", StringType())\
-    .add("Dropoff_Centroid_Longitude", StringType())\
-    .add("Pickup_Centroid_Longitude", StringType())
+    .add("payment_type", StringType())\
+    .add("dropoff_census_tract", StringType())\
+    .add("tolls", StringType())\
+    .add("trip_total", StringType())\
+    .add("dropoff_centroid_latitude", StringType())\
+    .add("fare", StringType())\
+    .add("tips", StringType())\
+    .add("pickup_census_tract", StringType())\
+    .add("company", StringType())\
+    .add("trip_start_timestamp", TimestampType())\
+    .add("trip_miles", StringType())\
+    .add("dropoff_community_area", StringType())\
+    .add("taxi_id", StringType())\
+    .add("trip_id", StringType())\
+    .add("pickup_centroid_latitude", StringType())\
+    .add("extras", StringType())\
+    .add("dropoff_centroid_location", StringType())\
+    .add("trip_seconds", StringType())\
+    .add("pickup_centroid_location", StringType())\
+    .add("trip_end_timestamp", TimestampType())\
+    .add("pickup_community_area", StringType())\
+    .add("dropoff_centroid_longitude", StringType())\
+    .add("pickup_centroid_longitude", StringType())
 
 # Formato del timestamp
 tripTimestampFormat = "MM/dd/yyyy hh:mm:ss a"
@@ -96,56 +96,56 @@ parsed = kst.select(from_json(kst.value, schemaJsonTaxiTrips, jsonOptions).alias
 taxiTripsRaw = parsed.select("parsed_value.*")\
 
 taxiTripsToHDFS = taxiTripsRaw.select(
-    "Trip_ID",
-    "Taxi_ID",
-    "Trip_Start_Timestamp",
-    "Trip_End_Timestamp",
-    "Trip_Seconds",
-    "Trip_Miles",
-    "Pickup_Census_Tract",
-    "Dropoff_Census_Tract",
-    "Pickup_Community_Area",
-    "Dropoff_Community_Area",
-    "Fare",
-    "Tips",
-    "Tolls",
-    "Extras",
-    "Trip_Total",
-    "Payment_Type",
-    "Company",
-    "Pickup_Centroid_Latitude",
-    "Pickup_Centroid_Longitude",
-    "Pickup_Centroid_Location",
-    "Dropoff_Centroid_Latitude",
-    "Dropoff_Centroid_Longitude",
-    "Dropoff_Centroid_Location",
-    year(taxiTripsRaw["Trip_Start_Timestamp"]).alias("year"),
-    month(taxiTripsRaw["Trip_Start_Timestamp"]).alias("month"),
-    dayofmonth(taxiTripsRaw["Trip_Start_Timestamp"]).alias("day")
+    "trip_id",
+    "taxi_id",
+    "trip_start_timestamp",
+    "trip_end_timestamp",
+    "trip_seconds",
+    "trip_miles",
+    "pickup_census_tract",
+    "dropoff_census_tract",
+    "pickup_community_area",
+    "dropoff_community_area",
+    "fare",
+    "tips",
+    "tolls",
+    "extras",
+    "trip_total",
+    "payment_type",
+    "company",
+    "pickup_centroid_latitude",
+    "pickup_centroid_longitude",
+    "pickup_centroid_location",
+    "dropoff_centroid_latitude",
+    "dropoff_centroid_longitude",
+    "dropoff_centroid_location",
+    year(taxiTripsRaw["trip_start_timestamp"]).alias("year"),
+    month(taxiTripsRaw["trip_start_timestamp"]).alias("month"),
+    dayofmonth(taxiTripsRaw["trip_start_timestamp"]).alias("day")
 )
-taxiTripsFormated = taxiTripsRaw.select("Trip_ID",
-            "Taxi_ID",
-            "Company",
-            "Trip_Start_Timestamp",
-            "Trip_End_Timestamp",
-            taxiTripsRaw["Trip_Seconds"].astype('integer').alias("Trip_Seconds"),
-            taxiTripsRaw["Trip_Miles"].astype('integer').alias("Trip_Miles"),
-            taxiTripsRaw["Pickup_Community_Area"].astype('integer').alias("Pickup_Community_Area"),
-            taxiTripsRaw["Dropoff_Community_Area"].astype('integer').alias("Dropoff_Community_Area"),
-            regexp_replace(taxiTripsRaw["Fare"], '[\$,)]', '').astype('double').alias("Fare"),
-            regexp_replace(taxiTripsRaw["Tips"], '[\$,)]', '').astype('double').alias("Tips"),
-            regexp_replace(taxiTripsRaw["Tolls"], '[\$,)]', '').astype('double').alias("Tolls"),
-            regexp_replace(taxiTripsRaw["Extras"], '[\$,)]', '').astype('double').alias("Extras"),
-            regexp_replace(taxiTripsRaw["Trip_Total"], '[\$,)]', '').astype('double').alias("Trip_Total")
+taxiTripsFormated = taxiTripsRaw.select("trip_id",
+            "taxi_id",
+            "company",
+            "trip_start_timestamp",
+            "trip_end_timestamp",
+            taxiTripsRaw["trip_seconds"].astype('integer').alias("trip_seconds"),
+            taxiTripsRaw["trip_miles"].astype('integer').alias("trip_miles"),
+            taxiTripsRaw["pickup_community_area"].astype('integer').alias("pickup_community_area"),
+            taxiTripsRaw["dropoff_community_area"].astype('integer').alias("dropoff_community_area"),
+            regexp_replace(taxiTripsRaw["fare"], '[\$,)]', '').astype('double').alias("fare"),
+            regexp_replace(taxiTripsRaw["tips"], '[\$,)]', '').astype('double').alias("tips"),
+            regexp_replace(taxiTripsRaw["tolls"], '[\$,)]', '').astype('double').alias("tolls"),
+            regexp_replace(taxiTripsRaw["extras"], '[\$,)]', '').astype('double').alias("extras"),
+            regexp_replace(taxiTripsRaw["trip_total"], '[\$,)]', '').astype('double').alias("trip_total")
             )
 
 # Enriquecemos el Stream con los nombres de los areas de inicio y fin
-taxiTripsEnrich = taxiTripsFormated.join(pickupAreas, 'Pickup_Community_Area')\
-    .join(dropoffAreas, 'Dropoff_Community_Area')
+taxiTripsEnrich = taxiTripsFormated.join(pickupAreas, 'pickup_community_area')\
+    .join(dropoffAreas, 'dropoff_community_area')
 
 # Inicio del aquery que escribe el resultado a kafka
 queryToKafka = taxiTripsEnrich\
-    .select(taxiTripsEnrich["Trip_Start_Timestamp"].astype('string').alias("key"),
+    .select(taxiTripsEnrich["trip_start_timestamp"].astype('string').alias("key"),
             to_json(struct("*")).alias("value"))\
     .writeStream \
     .format("kafka") \
