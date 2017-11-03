@@ -28,29 +28,29 @@ sparkSession = SparkSession\
 # Lectura del fichero con el historico fichero Taxi_Trips_2017.csv
 # Creamos el esquema del dataframe
 schemaTaxiTrips = StructType([
-    StructField("Trip_ID", StringType(), False),
-    StructField("Taxi_ID", StringType(), False),
-    StructField("Trip_Start_Timestamp", TimestampType(), True),
-    StructField("Trip_End_Timestamp", TimestampType(), True),
-    StructField("Trip_Seconds", IntegerType(), True),
-    StructField("Trip_Miles", DoubleType(), True),
-    StructField("Pickup_Census_Tract", StringType(), True),
-    StructField("Dropoff_Census_Tract", StringType(), True),
-    StructField("Pickup_Community_Area", IntegerType(), True),
-    StructField("Dropoff_Community_Area", IntegerType(), True),
-    StructField("Fare", StringType(), True),
-    StructField("Tips", StringType(), True),
-    StructField("Tolls", StringType(), True),
-    StructField("Extras", StringType(), True),
-    StructField("Trip_Total", StringType(), True),
-    StructField("Payment_Type", StringType(), True),
-    StructField("Company", StringType(), True),
-    StructField("Pickup_Centroid_Latitude", DoubleType(), True),
-    StructField("Pickup_Centroid_Longitude", DoubleType(), True),
-    StructField("Pickup_Centroid_Location", StringType(), True),
-    StructField("Dropoff_Centroid_Latitude", DoubleType(), True),
-    StructField("Dropoff_Centroid_Longitude", DoubleType(), True),
-    StructField("Dropoff_Centroid_Location", StringType(), True)
+    StructField("trip_id", StringType(), False),
+    StructField("taxi_id", StringType(), False),
+    StructField("trip_start_timestamp", TimestampType(), False),
+    StructField("trip_end_timestamp", TimestampType(), False),
+    StructField("trip_seconds", IntegerType(), True),
+    StructField("trip_miles", DoubleType(), True),
+    StructField("pickup_census_tract", StringType(), True),
+    StructField("dropoff_census_tract", StringType(), True),
+    StructField("pickup_community_area", IntegerType(), True),
+    StructField("dropoff_community_area", IntegerType(), True),
+    StructField("fare", StringType(), True),
+    StructField("tips", StringType(), True),
+    StructField("tolls", StringType(), True),
+    StructField("extras", StringType(), True),
+    StructField("trip_total", StringType(), True),
+    StructField("payment_type", StringType(), True),
+    StructField("company", StringType(), True),
+    StructField("pickup_centroid_latitude", DoubleType(), True),
+    StructField("pickup_centroid_longitude", DoubleType(), True),
+    StructField("pickup_centroid_location", StringType(), True),
+    StructField("dropoff_centroid_latitude", DoubleType(), True),
+    StructField("dropoff_centroid_longitude", DoubleType(), True),
+    StructField("dropoff_centroid_location", StringType(), True)
 ])
 
 filePath = "file:///home/albercn/PycharmProjects/TFM_TaxiTrips/data_source/" + year + "/"
@@ -58,109 +58,112 @@ filePath = "file:///home/albercn/PycharmProjects/TFM_TaxiTrips/data_source/" + y
 taxiTrips = sparkSession.read.csv(path=filePath, header=True, schema=schemaTaxiTrips,
                                   timestampFormat="MM/dd/yyyy hh:mm:ss a", mode="DROPMALFORMED")
 
-taxiTripsdf = taxiTrips.filter(taxiTrips.Company.isNotNull() & taxiTrips.Pickup_Community_Area.isNotNull())\
-    .select("Trip_ID", "Taxi_ID", "Company",
-    F.to_timestamp(F.date_format("Trip_Start_Timestamp", "yyyy-MM-dd hh:00:00").cast('string')).alias("Trip_Start_Date_Hour"),
-    F.to_date(F.date_format("Trip_Start_Timestamp", "yyyy-MM-dd")).alias("Trip_Start_Date"),
-    "Trip_Seconds", "Trip_Miles",
-    "Pickup_Census_Tract", "Dropoff_Census_Tract", "Pickup_Community_Area", "Dropoff_Community_Area",
-    F.regexp_replace(taxiTrips["Fare"], '[\$,)]', '').astype('double').alias("Fare"),
-    F.regexp_replace(taxiTrips["Tips"], '[\$,)]', '').astype('double').alias("Tips"),
-    F.regexp_replace(taxiTrips["Tolls"], '[\$,)]', '').astype('double').alias("Tolls"),
-    F.regexp_replace(taxiTrips["Extras"], '[\$,)]', '').astype('double').alias("Extras"),
-    F.regexp_replace(taxiTrips["Trip_Total"], '[\$,)]', '').astype('double').alias("Trip_Total"),
-    "Payment_Type")
+taxiTripsFormat = taxiTrips.filter((F.year("trip_start_timestamp").astype('string') == year) & taxiTrips.company.isNotNull() & taxiTrips.pickup_community_area.isNotNull())\
+    .select("trip_id", "taxi_id", "company",
+    F.to_timestamp(F.date_format("trip_start_timestamp", "yyyy-MM-dd hh:00:00").cast('string')).alias("trip_start_date_hour"),
+    F.to_date(F.date_format("trip_start_timestamp", "yyyy-MM-dd")).alias("trip_start_date"),
+    "trip_seconds", "trip_miles",
+    "pickup_census_tract", "dropoff_census_tract", "pickup_community_area", "dropoff_community_area",
+    F.regexp_replace(taxiTrips["fare"], '[\$,)]', '').astype('double').alias("fare"),
+    F.regexp_replace(taxiTrips["tips"], '[\$,)]', '').astype('double').alias("tips"),
+    F.regexp_replace(taxiTrips["tolls"], '[\$,)]', '').astype('double').alias("tolls"),
+    F.regexp_replace(taxiTrips["extras"], '[\$,)]', '').astype('double').alias("extras"),
+    F.regexp_replace(taxiTrips["trip_total"], '[\$,)]', '').astype('double').alias("trip_total"),
+    "payment_type")
+
+
+taxiTripsdf = taxiTripsFormat.filter(taxiTripsFormat.trip_start_date_hour.isNotNull())
 
 
 # Lectura del fichero con los areas
 # Creamos el esquema del dataframe
 schemaAreas = StructType([
-    StructField("Area_Number", IntegerType(), False),
-    StructField("Community", StringType(), False),
-    StructField("Area_Centroid_Latitude", StringType(), True),
-    StructField("Area_Centroid_Longitude", StringType(), True),
-    StructField("The_Geom", StringType(), True)
+    StructField("area_number", IntegerType(), False),
+    StructField("community", StringType(), False),
+    StructField("area_centroid_latitude", StringType(), True),
+    StructField("area_centroid_longitude", StringType(), True),
+    StructField("the_geom", StringType(), True)
 ])
 
 # Lectura del fichero la información de los areas
 areas = sparkSession.read.csv(path="hdfs://localhost:9000/TaxiTrips/areas/", header=True, schema=schemaAreas, mode="DROPMALFORMED")
 
-# Creación del dataframe para cruzar con TaxiTrips por Pickup_Community_Area
+# Creación del dataframe para cruzar con TaxiTrips por pickup_community_area
 pickupAreas = areas.select(
-    areas["Area_Number"].alias('Pickup_Community_Area'),
-    areas["Community"].alias('Pickup_Community_Area_Name'),
-    areas["Area_Centroid_Latitude"].alias('Pickup_Centroid_Latitude'),
-    areas["Area_Centroid_Longitude"].alias('Pickup_Centroid_Longitude')
+    areas["area_number"].alias('pickup_community_area'),
+    areas["community"].alias('pickup_community_area_name'),
+    areas["area_centroid_latitude"].alias('pickup_centroid_latitude'),
+    areas["area_centroid_longitude"].alias('pickup_centroid_longitude')
 )
-# Creación del dataframe para cruzar con TaxiTrips por Dropoff_Community_Area
+# Creación del dataframe para cruzar con TaxiTrips por dropoff_community_area
 dropoffAreas = areas.select(
-    areas["Area_Number"].alias('Dropoff_Community_Area'),
-    areas["Community"].alias('Dropoff_Community_Area_Name'),
-    areas["Area_Centroid_Latitude"].alias('Dropoff_Centroid_Latitude'),
-    areas["Area_Centroid_Longitude"].alias('Dropoff_Centroid_Longitude')
+    areas["area_number"].alias('dropoff_community_area'),
+    areas["community"].alias('dropoff_community_area_name'),
+    areas["area_centroid_latitude"].alias('dropoff_centroid_latitude'),
+    areas["area_centroid_longitude"].alias('dropoff_centroid_longitude')
 )
 
 
 # Cruce del dataframe TaxiTrips con los nombres de los areas de inicio y fin
-taxiTripsEnrich = taxiTripsdf.join(pickupAreas, 'Pickup_Community_Area')\
-    .join(dropoffAreas, 'Dropoff_Community_Area')
+taxiTripsEnrich = taxiTripsdf.join(pickupAreas, 'pickup_community_area')\
+    .join(dropoffAreas, 'dropoff_community_area')
 
 
 # Agrupación por fecha, hora, empresa y zona
-groupByCompanyDayHourArea = taxiTripsEnrich.groupBy("Trip_Start_Date_Hour", "Company",
-                                                "Pickup_Community_Area", "Pickup_Community_Area_Name",
-                                                "Pickup_Centroid_Latitude", "Pickup_Centroid_Longitude")\
-    .agg(F.sum("Fare").alias("TotalFare"),
-         F.sum("Tips").alias("TotalTips"),
-         F.sum("Tolls").alias("TotalTolls"),
-         F.sum("Extras").alias("TotalExtras"),
-         F.sum("Trip_Total").alias("TotalTripTotal"),
-         F.count("Trip_ID").alias("Trips"),
-         F.countDistinct("Taxi_ID").alias("Taxis"))
+groupByCompanyDayHourArea = taxiTripsEnrich.groupBy("trip_start_date", "trip_start_date_hour", "company",
+                                                "pickup_community_area", "pickup_community_area_name",
+                                                "pickup_centroid_latitude", "pickup_centroid_longitude")\
+    .agg(F.sum("fare").alias("fares"),
+         F.sum("tips").alias("tips"),
+         F.sum("tolls").alias("tolls"),
+         F.sum("extras").alias("extras"),
+         F.sum("trip_total").alias("trip_totals"),
+         F.count("trip_id").alias("trips"),
+         F.countDistinct("taxi_id").alias("taxis"))
 
 # Escritura en BBDD
 groupByCompanyDayHourArea.write.jdbc(url='jdbc:postgresql://localhost:5432/mydb', table='companies_pickup_area_view',
                                      mode='append', properties={'user': 'albercn', 'password': 'albercn'})
 
 # Agrupación por fecha, hora y zona
-groupByDayHourArea = taxiTripsEnrich.groupBy("Trip_Start_Date_Hour", "Pickup_Community_Area",
-                                         "Pickup_Community_Area_Name", "Pickup_Centroid_Latitude",
-                                         "Pickup_Centroid_Longitude")\
-       .agg(F.sum("Fare").alias("TotalFare"),
-            F.sum("Tips").alias("TotalTips"),
-            F.sum("Tolls").alias("TotalTolls"),
-            F.sum("Extras").alias("TotalExtras"),
-            F.sum("Trip_Total").alias("TotalTripTotal"),
-            F.count("Trip_ID").alias("Trips"),
-            F.countDistinct("Taxi_ID").alias("Taxis"))
+groupByDayHourArea = taxiTripsEnrich.groupBy("trip_start_date", "trip_start_date_hour", "pickup_community_area",
+                                         "pickup_community_area_name", "pickup_centroid_latitude",
+                                         "pickup_centroid_longitude")\
+       .agg(F.sum("fare").alias("fares"),
+            F.sum("tips").alias("tips"),
+            F.sum("tolls").alias("tolls"),
+            F.sum("extras").alias("extras"),
+            F.sum("trip_total").alias("trip_totals"),
+            F.count("trip_id").alias("trips"),
+            F.countDistinct("taxi_id").alias("taxis"))
 # Escritura en BBDD
 groupByDayHourArea.write.jdbc(url='jdbc:postgresql://localhost:5432/mydb', table='pickup_area_view', mode='append',
                               properties={'user': 'albercn', 'password': 'albercn'})
 
 
 # Agrupación por fecha, taxi, empresa y zona
-groupByDayTaxiCompanyArea = taxiTripsEnrich.groupBy("Trip_Start_Date", "Taxi_ID", "Company", "Pickup_Community_Area",
-                                                "Pickup_Community_Area_Name", "Pickup_Centroid_Latitude",
-                                                "Pickup_Centroid_Longitude")\
-       .agg(F.sum("Fare").alias("TotalFare"),
-            F.sum("Tips").alias("TotalTips"),
-            F.sum("Tolls").alias("TotalTolls"),
-            F.sum("Extras").alias("TotalExtras"),
-            F.sum("Trip_Total").alias("TotalTripTotal"),
-            F.count("Trip_ID").alias("Trips"))
+groupByDayTaxiCompanyArea = taxiTripsEnrich.groupBy("trip_start_date", "taxi_id", "company", "pickup_community_area",
+                                                "pickup_community_area_name", "pickup_centroid_latitude",
+                                                "pickup_centroid_longitude")\
+       .agg(F.sum("fare").alias("fares"),
+            F.sum("tips").alias("tips"),
+            F.sum("tolls").alias("tolls"),
+            F.sum("extras").alias("extras"),
+            F.sum("trip_total").alias("trip_totals"),
+            F.count("trip_id").alias("trips"))
 
 # Escritura en BBDD
 groupByDayTaxiCompanyArea.write.jdbc(url='jdbc:postgresql://localhost:5432/mydb', table='taxi_pickup_area_day_view',
                                      mode='append', properties={'user': 'albercn', 'password': 'albercn'})
 
 # Agrupación por fecha, hora, taxi y empresa
-groupByDayHourTaxiCompany = taxiTripsEnrich.groupBy("Trip_Start_Date_Hour", "Taxi_ID", "Company")\
-       .agg(F.sum("Fare").alias("TotalFare"),
-            F.sum("Tips").alias("TotalTips"),
-            F.sum("Tolls").alias("TotalTolls"),
-            F.sum("Extras").alias("TotalExtras"),
-            F.sum("Trip_Total").alias("TotalTripTotal"),
-            F.count("Trip_ID").alias("Trips"))
+groupByDayHourTaxiCompany = taxiTripsEnrich.groupBy("trip_start_date", "trip_start_date_hour", "taxi_id", "company")\
+       .agg(F.sum("fare").alias("fares"),
+            F.sum("tips").alias("tips"),
+            F.sum("tolls").alias("tolls"),
+            F.sum("extras").alias("extras"),
+            F.sum("trip_total").alias("trip_totals"),
+            F.count("trip_id").alias("trips"))
 
 # Escritura en BBDD
 groupByDayHourTaxiCompany.write.jdbc(url='jdbc:postgresql://localhost:5432/mydb', table='taxis_view', mode='append', 

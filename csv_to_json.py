@@ -11,7 +11,11 @@ fileNameOut = os.path.join('data_source', 'Taxi_Trips_2017.json')
 infile = open(fileName, 'r')
 jsonfile = open(fileNameOut, 'w')
 
-fieldnames = ("Trip_ID", "Taxi_ID", "Trip_Start_Timestamp", "Trip_End_Timestamp", "Trip_Seconds", "Trip_Miles", "Pickup_Census_Tract", "Dropoff_Census_Tract", "Pickup_Community_Area", "Dropoff_Community_Area", "Fare", "Tips", "Tolls", "Extras", "Trip_Total", "Payment Type", "Company", "Pickup_Centroid_Latitude", "Pickup_Centroid_Longitude", "Pickup_Centroid_Location", "Dropoff_Centroid_Latitude", "Dropoff_Centroid_Longitude", "Dropoff_Centroid_Location")
+fieldnames = ("trip_id", "taxi_id", "trip_start_timestamp", "trip_end_timestamp", "trip_seconds", "trip_miles",
+              "pickup_census_tract", "dropoff_census_tract", "pickup_community_area", "dropoff_community_area",
+              "fare", "tips", "tolls", "extras", "trip_total", "payment_type", "company", "pickup_centroid_latitude",
+              "pickup_centroid_longitude", "pickup_centroid_location", "dropoff_centroid_latitude",
+              "dropoff_centroid_longitude", "dropoff_centroid_location")
 reader = csv.DictReader(infile, fieldnames)
 for row in reader:
     json.dump(row, jsonfile)
