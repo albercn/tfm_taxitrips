@@ -1,0 +1,115 @@
+{
+  "type": "kafka",
+  "dataSchema": {
+    "dataSource": "taxi-trips",
+    "parser": {
+      "type": "string",
+      "parseSpec": {
+        "format": "json",
+        "timestampSpec": {
+          "column": "trip_start_timestamp",
+          "format": "auto"
+        },
+        "dimensionsSpec": {
+          "dimensions": [
+            "taxi_id",
+            "company",
+            "pickup_community_area",
+            "pickup_community_area_name",
+            "pickup_centroid_latitude",
+            "pickup_centroid_longitude",
+            "dropoff_community_area",
+            "dropoff_community_area_name",
+            "dropoff_centroid_latitude",
+            "dropoff_centroid_longitude"
+          ],
+        "dimensionExclusions": [
+            "trip_id",
+            "trip_seconds",
+            "trip_miles",
+            "fare",
+            "tips",
+            "tolls",
+            "extras",
+            "trip_total",
+            "trip_start_timestamp",
+            "trip_end_timestamp"
+          ],
+        "spatialDimensions": [
+             {
+               "dimName": "pickup_centroid_location",
+               "dims": [
+                 "pickup_centroid_latitude",
+                 "pickup_centroid_longitude"
+               ],
+               "dimName": "dropoff_centroid_location",
+               "dims": [
+                 "dropoff_centroid_latitude",
+                 "dropoff_centroid_longitude"
+               ]
+             }
+           ]
+        }
+      }
+    },
+    "metricsSpec": [
+      {
+        "name": "count",
+        "type": "count"
+      },
+      {
+        "name": "triptotal_sum",
+        "fieldName": "Trip_Total",
+        "type": "doubleSum"
+      },
+      {
+        "name": "trip_seconds_sum",
+        "fieldName": "Trip_Seconds",
+        "type": "doubleSum"
+      },
+      {
+        "name": "trip_miles_sum",
+        "fieldName": "Trip_Miles",
+        "type": "doubleSum"
+      },
+      {
+        "name": "fare_sum",
+        "fieldName": "Fare",
+        "type": "doubleSum"
+      },
+      {
+        "name": "tips_sum",
+        "fieldName": "Tips",
+        "type": "doubleSum"
+      },
+      {
+        "name": "tolls_sum",
+        "fieldName": "Tolls",
+        "type": "doubleSum"
+      },  
+      {
+        "name": "extras_sum",
+        "fieldName": "Extras",
+        "type": "doubleSum"
+      }     
+    ],
+    "granularitySpec": {
+      "type": "uniform",
+      "segmentGranularity": "HOUR",
+      "queryGranularity": "NONE"
+    }
+  },
+  "tuningConfig": {
+    "type": "kafka",
+    "maxRowsPerSegment": 5000000
+  },
+  "ioConfig": {
+    "topic": "druidTopic",
+    "consumerProperties": {
+      "bootstrap.servers": "localhost:9092"
+    },
+    "taskCount": 1,
+    "replicas": 1,
+    "taskDuration": "PT1H"
+  }
+}
