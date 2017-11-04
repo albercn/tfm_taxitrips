@@ -29,14 +29,14 @@ for row in reader:
         t = datetime.datetime.now()
         end = t + duration
 
-        row['Trip_Start_Timestamp'] = t.strftime("%m/%d/%Y %I:%M:%S %p")
-        row['Trip_End_Timestamp'] = end.strftime("%m/%d/%Y %I:%M:%S %p")
+        row['trip_start_timestamp'] = t.strftime("%m/%d/%Y %I:%M:%S %p")
+        row['trip_end_timestamp'] = end.strftime("%m/%d/%Y %I:%M:%S %p")
 
         strLineJson = json.dumps(row)
-        print (strLineJson)
-    i = i + 1
-    producer.send(topic="rawTopic", value=strLineJson)
 
-    time.sleep(0.1)
+        producer.send(topic="rawTopic", value=strLineJson)
+    i = i + 1
+    
+    time.sleep(1)
 
 infile.close()
