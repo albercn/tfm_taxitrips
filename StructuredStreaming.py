@@ -88,6 +88,7 @@ kst = sparkSession\
         .format("kafka")\
         .option("kafka.bootstrap.servers", brokers)\
         .option("subscribe", inTopic)\
+        .option("failOnDataLoss", False)\
         .load()\
         .selectExpr("CAST(value AS STRING)")
 
