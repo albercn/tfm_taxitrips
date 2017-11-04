@@ -41,7 +41,9 @@
                "dims": [
                  "pickup_centroid_latitude",
                  "pickup_centroid_longitude"
-               ],
+               ]
+             },
+             {
                "dimName": "dropoff_centroid_location",
                "dims": [
                  "dropoff_centroid_latitude",
@@ -59,37 +61,37 @@
       },
       {
         "name": "triptotal_sum",
-        "fieldName": "Trip_Total",
+        "fieldName": "trip_total",
         "type": "doubleSum"
       },
       {
         "name": "trip_seconds_sum",
-        "fieldName": "Trip_Seconds",
+        "fieldName": "trip_seconds",
         "type": "doubleSum"
       },
       {
         "name": "trip_miles_sum",
-        "fieldName": "Trip_Miles",
+        "fieldName": "trip_miles",
         "type": "doubleSum"
       },
       {
         "name": "fare_sum",
-        "fieldName": "Fare",
+        "fieldName": "fare",
         "type": "doubleSum"
       },
       {
         "name": "tips_sum",
-        "fieldName": "Tips",
+        "fieldName": "tips",
         "type": "doubleSum"
       },
       {
         "name": "tolls_sum",
-        "fieldName": "Tolls",
+        "fieldName": "tolls",
         "type": "doubleSum"
       },  
       {
         "name": "extras_sum",
-        "fieldName": "Extras",
+        "fieldName": "extras",
         "type": "doubleSum"
       }     
     ],
