@@ -26,7 +26,7 @@ for row in reader:
         if row['trip_seconds'] == '':
             row['trip_seconds'] = 0
         duration = datetime.timedelta(seconds=int(row['trip_seconds']))
-        t = datetime.datetime.now()
+        t = datetime.datetime.utcnow()
         end = t + duration
 
         row['trip_start_timestamp'] = t.strftime("%m/%d/%Y %I:%M:%S %p")
