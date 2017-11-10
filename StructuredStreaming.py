@@ -7,13 +7,13 @@ import sys
 
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StringType, TimestampType, IntegerType, StructField, StructType
-from pyspark.sql.functions import from_json, regexp_replace, to_json, struct, year, month, dayofmonth
+from pyspark.sql.functions import from_json, regexp_replace, to_json, struct, year, month, dayofmonth, unix_timestamp
 
 
 # Validación del número de parametros de entrada introducidos
 if __name__ == "__main__":
     if len(sys.argv) != 4:
-        print("Usage: Streaming.py <broker_list> <inTopic> <outTopic>", file=sys.stderr)
+        print("El número de parametros indicados no es correcto. Use: StrucuredStreaming.py <broker> <inTopic> <outTopic>", file=sys.stderr)
         exit(-1)
 
 # Obtenemos la url del broker y el topic de entrada
@@ -24,7 +24,7 @@ sparkSession = SparkSession\
         .appName("StructuredStreamingTaxis")\
         .getOrCreate()
 
-# Lectura del fichero con los areas Taxi_Trips_2017.csv
+# Lectura del fichero con los areas que utilizaremos para enriquecer los datos de los viajes leidos de kafka
 # Creamos el esquema del dataframe
 schemaAreas = StructType([
     StructField("area_number", IntegerType(), False),
@@ -36,6 +36,7 @@ schemaAreas = StructType([
 # Lectura del fichero
 areas = sparkSession.read.csv(path="hdfs://localhost:9000/TaxiTrips/areas/", header=True, schema=schemaAreas,
                             mode="DROPMALFORMED")
+
 # Creación del dataframe para cruzar con TaxiTrips por pickup_community_area
 pickupAreas = areas.select(
     areas["area_Number"].alias('pickup_community_area'),
@@ -96,22 +97,22 @@ parsed = kst.select(from_json(kst.value, schemaJsonTaxiTrips, jsonOptions).alias
 
 taxiTripsRaw = parsed.select("parsed_value.*")\
 
-taxiTripsToHDFS = taxiTripsRaw.select(
+taxiTrips = taxiTripsRaw.select(
     "trip_id",
     "taxi_id",
     "trip_start_timestamp",
     "trip_end_timestamp",
-    "trip_seconds",
-    "trip_miles",
+    taxiTripsRaw["trip_seconds"].astype('integer').alias("trip_seconds"),
+    taxiTripsRaw["trip_miles"].astype('integer').alias("trip_miles"),
     "pickup_census_tract",
     "dropoff_census_tract",
-    "pickup_community_area",
-    "dropoff_community_area",
-    "fare",
-    "tips",
-    "tolls",
-    "extras",
-    "trip_total",
+    taxiTripsRaw["pickup_community_area"].astype('integer').alias("pickup_community_area"),
+    taxiTripsRaw["dropoff_community_area"].astype('integer').alias("dropoff_community_area"),
+    regexp_replace(taxiTripsRaw["fare"], '[\$,)]', '').astype('double').alias("fare"),
+    regexp_replace(taxiTripsRaw["tips"], '[\$,)]', '').astype('double').alias("tips"),
+    regexp_replace(taxiTripsRaw["tolls"], '[\$,)]', '').astype('double').alias("tolls"),
+    regexp_replace(taxiTripsRaw["extras"], '[\$,)]', '').astype('double').alias("extras"),
+    regexp_replace(taxiTripsRaw["trip_total"], '[\$,)]', '').astype('double').alias("trip_total"),
     "payment_type",
     "company",
     "pickup_centroid_latitude",
@@ -124,29 +125,31 @@ taxiTripsToHDFS = taxiTripsRaw.select(
     month(taxiTripsRaw["trip_start_timestamp"]).alias("month"),
     dayofmonth(taxiTripsRaw["trip_start_timestamp"]).alias("day")
 )
-taxiTripsFormated = taxiTripsRaw.select("trip_id",
+
+# Selección los campos que se enviarán a través de kafka
+taxiTripsToKafka = taxiTrips.select("trip_id",
             "taxi_id",
             "company",
             "trip_start_timestamp",
             "trip_end_timestamp",
-            taxiTripsRaw["trip_seconds"].astype('integer').alias("trip_seconds"),
-            taxiTripsRaw["trip_miles"].astype('integer').alias("trip_miles"),
-            taxiTripsRaw["pickup_community_area"].astype('integer').alias("pickup_community_area"),
-            taxiTripsRaw["dropoff_community_area"].astype('integer').alias("dropoff_community_area"),
-            regexp_replace(taxiTripsRaw["fare"], '[\$,)]', '').astype('double').alias("fare"),
-            regexp_replace(taxiTripsRaw["tips"], '[\$,)]', '').astype('double').alias("tips"),
-            regexp_replace(taxiTripsRaw["tolls"], '[\$,)]', '').astype('double').alias("tolls"),
-            regexp_replace(taxiTripsRaw["extras"], '[\$,)]', '').astype('double').alias("extras"),
-            regexp_replace(taxiTripsRaw["trip_total"], '[\$,)]', '').astype('double').alias("trip_total")
+            "trip_seconds",
+            "trip_miles",
+            "pickup_community_area",
+            "dropoff_community_area",
+            "fare",
+            "tips",
+            "tolls",
+            "extras",
+            "trip_total"
             )
 
-# Enriquecemos el Stream con los nombres de los areas de inicio y fin
-taxiTripsEnrich = taxiTripsFormated.join(pickupAreas, 'pickup_community_area')\
+# Enriquecemos el Stream con los nombres de los areas de inicio y fin, y sus puntos centrales(lat. y long.)
+taxiTripsEnrich = taxiTripsToKafka.join(pickupAreas, 'pickup_community_area')\
     .join(dropoffAreas, 'dropoff_community_area')
 
-# Inicio del aquery que escribe el resultado a kafka
+# Inicio de la query que escribe el resultado a kafka
 queryToKafka = taxiTripsEnrich\
-    .select(taxiTripsEnrich["trip_start_timestamp"].astype('string').alias("key"),
+    .select(unix_timestamp(taxiTripsEnrich["trip_start_timestamp"].cast('string')).cast('string').alias("key"),
             to_json(struct("*")).alias("value"))\
     .writeStream \
     .format("kafka") \
@@ -157,8 +160,7 @@ queryToKafka = taxiTripsEnrich\
     .start()
 
 # Inicio de la query que escribe los eventos a HDFS
-
-queryToHDFS = taxiTripsToHDFS.writeStream \
+queryToHDFS = taxiTrips.writeStream \
         .format("parquet") \
         .partitionBy("year", "month", "day") \
         .option("path", "hdfs://localhost:9000/TaxiTrips/rawEvents") \
@@ -168,3 +170,5 @@ queryToHDFS = taxiTripsToHDFS.writeStream \
 
 queryToKafka.awaitTermination()
 queryToHDFS.awaitTermination()
+
+#         .trigger(processingTime='60 seconds') \
