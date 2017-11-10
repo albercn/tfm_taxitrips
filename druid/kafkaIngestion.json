@@ -1,7 +1,7 @@
 {
   "type": "kafka",
   "dataSchema": {
-    "dataSource": "taxi-trips",
+    "dataSource": "taxi-trips-2",
     "parser": {
       "type": "string",
       "parseSpec": {
@@ -35,28 +35,13 @@
             "trip_start_timestamp",
             "trip_end_timestamp"
           ],
-        "spatialDimensions": [
-             {
-               "dimName": "pickup_centroid_location",
-               "dims": [
-                 "pickup_centroid_latitude",
-                 "pickup_centroid_longitude"
-               ]
-             },
-             {
-               "dimName": "dropoff_centroid_location",
-               "dims": [
-                 "dropoff_centroid_latitude",
-                 "dropoff_centroid_longitude"
-               ]
-             }
-           ]
+        "spatialDimensions": []
         }
       }
     },
     "metricsSpec": [
       {
-        "name": "count",
+        "name": "trips",
         "type": "count"
       },
       {
@@ -97,7 +82,7 @@
     ],
     "granularitySpec": {
       "type": "uniform",
-      "segmentGranularity": "HOUR",
+      "segmentGranularity": "PT15M",
       "queryGranularity": "NONE"
     }
   },
@@ -112,6 +97,6 @@
     },
     "taskCount": 1,
     "replicas": 1,
-    "taskDuration": "PT1H"
+    "taskDuration": "PT15M"
   }
 }
