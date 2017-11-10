@@ -34,8 +34,10 @@ schemaAreas = StructType([
     StructField("the_geom", StringType(), True)
 ])
 # Lectura del fichero
-areas = sparkSession.read.csv(path="hdfs://localhost:9000/TaxiTrips/areas/", header=True, schema=schemaAreas,
-                            mode="DROPMALFORMED")
+areas = sparkSession.read.csv(path="hdfs://localhost:9000/TaxiTrips/areas/",
+                              header=True,
+                              schema=schemaAreas,
+                              mode="DROPMALFORMED")
 
 # Creación del dataframe para cruzar con TaxiTrips por pickup_community_area
 pickupAreas = areas.select(
@@ -53,7 +55,7 @@ dropoffAreas = areas.select(
 )
 
 
-# Creamos el esquema del json
+# Definición del esquema del json
 schemaJsonTaxiTrips = StructType()\
     .add("payment_type", StringType())\
     .add("dropoff_census_tract", StringType())\
@@ -162,6 +164,7 @@ queryToKafka = taxiTripsEnrich\
 # Inicio de la query que escribe los eventos a HDFS
 queryToHDFS = taxiTrips.writeStream \
         .format("parquet") \
+        .trigger(processingTime='15 minutes') \
         .partitionBy("year", "month", "day") \
         .option("path", "hdfs://localhost:9000/TaxiTrips/rawEvents") \
         .option("checkpointLocation", "hdfs://localhost:9000/TaxiTrips/checkpointHDFS") \
@@ -171,4 +174,4 @@ queryToHDFS = taxiTrips.writeStream \
 queryToKafka.awaitTermination()
 queryToHDFS.awaitTermination()
 
-#         .trigger(processingTime='60 seconds') \
+
