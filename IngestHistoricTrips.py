@@ -20,7 +20,6 @@ year = sys.argv[1]
 
 sparkSession = SparkSession\
                 .builder\
-                .master("local[2]")\
                 .appName("IngestaHistoricoTaxiTrips") \
                 .getOrCreate()
 
@@ -45,11 +44,11 @@ schemaTaxiTrips = StructType([
     StructField("trip_total", StringType(), True),
     StructField("payment_type", StringType(), True),
     StructField("company", StringType(), True),
-    StructField("pickup_centroid_latitude", DoubleType(), True),
-    StructField("pickup_centroid_longitude", DoubleType(), True),
+    StructField("pickup_centroid_latitude", StringType(), True),
+    StructField("pickup_centroid_longitude", StringType(), True),
     StructField("pickup_centroid_location", StringType(), True),
-    StructField("dropoff_centroid_latitude", DoubleType(), True),
-    StructField("dropoff_centroid_longitude", DoubleType(), True),
+    StructField("dropoff_centroid_latitude", StringType(), True),
+    StructField("dropoff_centroid_longitude", StringType(), True),
     StructField("dropoff_centroid_location", StringType(), True)
 ])
 
@@ -85,11 +84,10 @@ taxiTrips = taxiTripsRaw.select(
     "dropoff_centroid_longitude",
     "dropoff_centroid_location",
     F.year(taxiTripsRaw["trip_start_timestamp"]).alias("year"),
-    F.month(taxiTripsRaw["trip_start_timestamp"]).alias("month"),
-    F.dayofmonth(taxiTripsRaw["trip_start_timestamp"]).alias("day")
+    F.month(taxiTripsRaw["trip_start_timestamp"]).alias("month")
 )
 
 taxiTrips.write.parquet(path="hdfs://localhost:9000/TaxiTrips/rawEvents",
-                        mode="Append",
-                        partitionBy=["year", "month", "day"])
+                        mode="append",
+                        partitionBy=["year", "month"])
 

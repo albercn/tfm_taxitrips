@@ -7,7 +7,7 @@ import sys
 
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StringType, TimestampType, IntegerType, StructField, StructType
-from pyspark.sql.functions import from_json, regexp_replace, to_json, struct, year, month, dayofmonth, unix_timestamp
+from pyspark.sql.functions import from_json, regexp_replace, to_json, struct, year, month
 
 
 # Validación del número de parametros de entrada introducidos
@@ -21,7 +21,7 @@ brokers, inTopic, outTopic = sys.argv[1:]
 
 sparkSession = SparkSession\
         .builder\
-        .appName("StructuredStreamingTaxis")\
+        .appName("taxi-trips-streaming")\
         .getOrCreate()
 
 # Lectura del fichero con los areas que utilizaremos para enriquecer los datos de los viajes leidos de kafka
@@ -124,8 +124,7 @@ taxiTrips = taxiTripsRaw.select(
     "dropoff_centroid_longitude",
     "dropoff_centroid_location",
     year(taxiTripsRaw["trip_start_timestamp"]).alias("year"),
-    month(taxiTripsRaw["trip_start_timestamp"]).alias("month"),
-    dayofmonth(taxiTripsRaw["trip_start_timestamp"]).alias("day")
+    month(taxiTripsRaw["trip_start_timestamp"]).alias("month")
 )
 
 # Selección los campos que se enviarán a través de kafka
@@ -151,7 +150,7 @@ taxiTripsEnrich = taxiTripsToKafka.join(pickupAreas, 'pickup_community_area')\
 
 # Inicio de la query que escribe el resultado a kafka
 queryToKafka = taxiTripsEnrich\
-    .select(unix_timestamp(taxiTripsEnrich["trip_start_timestamp"].cast('string')).cast('string').alias("key"),
+    .select(taxiTripsEnrich["taxi_id"].cast('string').alias("key"),
             to_json(struct("*")).alias("value"))\
     .writeStream \
     .format("kafka") \
@@ -165,7 +164,7 @@ queryToKafka = taxiTripsEnrich\
 queryToHDFS = taxiTrips.writeStream \
         .format("parquet") \
         .trigger(processingTime='15 minutes') \
-        .partitionBy("year", "month", "day") \
+        .partitionBy("year", "month") \
         .option("path", "hdfs://localhost:9000/TaxiTrips/rawEvents") \
         .option("checkpointLocation", "hdfs://localhost:9000/TaxiTrips/checkpointHDFS") \
         .outputMode("Append") \
