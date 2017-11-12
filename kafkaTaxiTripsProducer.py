@@ -8,7 +8,7 @@ import csv
 import json
 from kafka import KafkaProducer
 
-# producer = KafkaProducer(bootstrap_servers='ec2-52-213-127-73.eu-west-1.compute.amazonaws.com:9092')
+#producer = KafkaProducer(bootstrap_servers='ec2-54-194-66-254.eu-west-1.compute.amazonaws.com:9092,ec2-34-240-84-105.eu-west-1.compute.amazonaws.com:9092')
 producer = KafkaProducer(bootstrap_servers='localhost:9092')
 fileName = os.path.join('data_source/2017', 'Taxi_Trips_2017.csv')
 
@@ -34,7 +34,7 @@ for row in reader:
 
         strLineJson = json.dumps(row)
 
-        producer.send(topic="rawTopic", value=strLineJson)
+        producer.send(topic="rawTopic", key=row['taxi_id'], value=strLineJson)
     i = i + 1
     
     time.sleep(1)
