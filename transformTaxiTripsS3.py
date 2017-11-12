@@ -28,14 +28,13 @@ sparkSession = SparkSession\
 
 """
 OPCION HIVE
+
 sparkSession = SparkSession\
         .builder \
-        .master("local[2]") \
         .appName("Taxi-trips-batch")\
         .config("spark.sql.warehouse.dir", '/home/albercn/opt/hive/warehouse')\
         .enableHiveSupport()\
         .getOrCreate()
-
 
 """
 
@@ -43,7 +42,6 @@ sparkSession = SparkSession\
 Lectura de los datos de los viajes de taxi de hdfs
 """
 
-parquet = True
 try:
         # Construcción de la ruta de lectura de HDFS
         pathTaxiTripsHDFS = "s3a://taxi-trips-tfm/trips-events/year=" + tripsYear + "/"
@@ -53,12 +51,11 @@ try:
             .select(
                 "trip_id",
                 "taxi_id",
-                "trip_start_timestamp",
-                "trip_end_timestamp",
+                "company",
+                F.to_timestamp(F.date_format("trip_start_timestamp", "yyyy-MM-dd HH:00:00")).alias("trip_start_date_hour"),
+                F.to_date(F.date_format("trip_start_timestamp", "yyyy-MM-dd")).alias("trip_start_date"),
                 "trip_seconds",
                 "trip_miles",
-                "pickup_census_tract",
-                "dropoff_census_tract",
                 "pickup_community_area",
                 "dropoff_community_area",
                 "fare",
@@ -66,45 +63,12 @@ try:
                 "tolls",
                 "extras",
                 "trip_total",
-                "payment_type",
-                "company",
-                "pickup_centroid_latitude",
-                "pickup_centroid_longitude",
-                "pickup_centroid_location",
-                "dropoff_centroid_latitude",
-                "dropoff_centroid_longitude",
-                "dropoff_centroid_location"
+                "payment_type"
             )
 
 except(AnalysisException):
         print("No existen datos del año " + tripsYear, file=sys.stderr)
         exit(-1)
-
-taxiTripsFormat = taxiTrips\
-    .filter(
-        (F.year("trip_start_timestamp").astype('string') == tripsYear) &
-        taxiTrips.company.isNotNull() &
-        taxiTrips.pickup_community_area.isNotNull()
-    )\
-    .select(
-        "trip_id",
-        "taxi_id",
-        "company",
-        F.to_timestamp(F.date_format("trip_start_timestamp", "yyyy-MM-dd HH:00:00")).alias("trip_start_date_hour"),
-        F.to_date(F.date_format("trip_start_timestamp", "yyyy-MM-dd")).alias("trip_start_date"),
-        "trip_seconds",
-        "trip_miles",
-        "pickup_community_area",
-        "dropoff_community_area",
-        "fare",
-        "tips",
-        "tolls",
-        "extras",
-        "trip_total",
-        "payment_type"
-    )
-
-taxiTripsdf = taxiTripsFormat.filter(taxiTripsFormat.trip_start_date_hour.isNotNull())
 
 """
 Lectura del fichero con los areas
@@ -143,11 +107,11 @@ dropoffAreas = areas.select(
 
 
 # Cruce del dataframe TaxiTrips con los nombres de los areas de inicio y fin
-taxiTripsEnrich = taxiTripsdf.join(pickupAreas, 'pickup_community_area')\
-    .join(dropoffAreas, 'dropoff_community_area')
+taxiTripsEnrich = taxiTrips.join(pickupAreas, 'pickup_community_area', 'left')\
+    .join(dropoffAreas, 'dropoff_community_area', 'left')
 
 
-# Agrupación por fecha, hora, empresa y zona
+# Agrupación por fecha, hora, empresa y area de inicio
 groupByCompanyDayHourArea = taxiTripsEnrich\
     .groupBy("trip_start_date_hour",
              "company",
@@ -177,7 +141,7 @@ groupByCompanyDayHourArea.write.jdbc(url='jdbc:postgresql://taxi-trips.cdihiorub
                                      )
 
 
-# Agrupación por fecha, hora y zona
+# Agrupación por fecha, hora y area de inicio
 groupByDayHourArea = groupByCompanyDayHourArea\
     .groupBy("trip_start_date_hour",
              "pickup_community_area",
@@ -189,7 +153,7 @@ groupByDayHourArea = groupByCompanyDayHourArea\
          F.sum("tolls").alias("tolls"),
          F.sum("extras").alias("extras"),
          F.sum("trip_totals").alias("trip_totals"),
-         F.count("trips").alias("trips"),
+         F.sum("trips").alias("trips"),
          F.countDistinct("taxis").alias("taxis")
          )
 
