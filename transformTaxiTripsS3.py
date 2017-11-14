@@ -20,23 +20,23 @@ if __name__ == "__main__":
     else:
         # Obtenemos año introducido como parametro
         tripsYear = sys.argv[1]
-
+"""
 sparkSession = SparkSession\
         .builder \
         .appName("Taxi-trips-batch")\
         .getOrCreate()
 
 """
-OPCION HIVE
+# OPCION HIVE
 
 sparkSession = SparkSession\
         .builder \
         .appName("Taxi-trips-batch")\
-        .config("spark.sql.warehouse.dir", '/home/albercn/opt/hive/warehouse')\
+        .config("spark.sql.warehouse.dir", 's3a://taxi-trips-tfm/hive/warehouse')\
         .enableHiveSupport()\
         .getOrCreate()
 
-"""
+
 
 """
 Lectura de los datos de los viajes de taxi de hdfs
@@ -54,6 +54,7 @@ try:
                 "company",
                 F.to_timestamp(F.date_format("trip_start_timestamp", "yyyy-MM-dd HH:00:00")).alias("trip_start_date_hour"),
                 F.to_date(F.date_format("trip_start_timestamp", "yyyy-MM-dd")).alias("trip_start_date"),
+                F.to_date(F.date_format("trip_start_timestamp", "yyyy-MM-01")).alias("trip_start_month"),
                 "trip_seconds",
                 "trip_miles",
                 "pickup_community_area",
@@ -114,6 +115,8 @@ taxiTripsEnrich = taxiTrips.join(pickupAreas, 'pickup_community_area', 'left')\
 # Agrupación por fecha, hora, empresa y area de inicio
 groupByCompanyDayHourArea = taxiTripsEnrich\
     .groupBy("trip_start_date_hour",
+             "trip_start_date",
+             "trip_start_month",
              "company",
              "pickup_community_area",
              "pickup_community_area_name",
@@ -128,10 +131,12 @@ groupByCompanyDayHourArea = taxiTripsEnrich\
          F.count("trip_id").alias("trips"),
          F.countDistinct("taxi_id").alias("taxis")
          )
-"""
-OPCIÓN HIVE
 
-groupByCompanyDayHourArea.write.saveAsTable('companies_pickup_area_view_' + tripsYear, mode='overwrite')
+# OPCIÓN HIVE
+
+groupByCompanyDayHourArea.write\
+    .option('path', 's3a://taxi-trips-tfm/transform-trips/companies_pickup_area_view_' + tripsYear)\
+    .saveAsTable('companies_pickup_area_view_' + tripsYear, mode='overwrite', format='parquet')
 """
 # Escritura en BBDD
 groupByCompanyDayHourArea.write.jdbc(url='jdbc:postgresql://taxi-trips.cdihiorubekt.eu-west-1.rds.amazonaws.com:5432/taxitrips',
@@ -139,11 +144,13 @@ groupByCompanyDayHourArea.write.jdbc(url='jdbc:postgresql://taxi-trips.cdihiorub
                                      mode='overwrite',
                                      properties={'user': 'albercn', 'password': 'K$chool_TFM'}
                                      )
-
+"""
 
 # Agrupación por fecha, hora y area de inicio
 groupByDayHourArea = groupByCompanyDayHourArea\
     .groupBy("trip_start_date_hour",
+             "trip_start_date",
+             "trip_start_month",
              "pickup_community_area",
              "pickup_community_area_name",
              "pickup_centroid_latitude",
@@ -157,16 +164,22 @@ groupByDayHourArea = groupByCompanyDayHourArea\
          F.countDistinct("taxis").alias("taxis")
          )
 
+groupByDayHourArea.write\
+    .option('path', 's3a://taxi-trips-tfm/transform-trips/pickup_area_view_' + tripsYear)\
+    .saveAsTable('pickup_area_view_' + tripsYear, mode='overwrite', format='parquet')
 
+"""
 # Escritura en BBDD
 groupByDayHourArea.write.jdbc(url='jdbc:postgresql://taxi-trips.cdihiorubekt.eu-west-1.rds.amazonaws.com:5432/taxitrips',
                               table='pickup_area_view_' + tripsYear,
                               mode='overwrite',
                               properties={'user': 'albercn', 'password': 'K$chool_TFM'})
+"""
 
 # Agrupación por fecha, taxi, empresa y zona
 groupByDayTaxiCompanyArea = taxiTripsEnrich\
     .groupBy("trip_start_date",
+             "trip_start_month",
              "taxi_id",
              "company",
              "pickup_community_area",
@@ -181,9 +194,15 @@ groupByDayTaxiCompanyArea = taxiTripsEnrich\
          F.sum("trip_total").alias("trip_totals"),
          F.count("trip_id").alias("trips")
          )
+
+groupByDayTaxiCompanyArea \
+    .write.saveAsTable('taxi_pickup_area_day_view_' + tripsYear, mode='overwrite', format='parquet')
+
+"""
 # Escritura en BBDD
 groupByDayTaxiCompanyArea.write.jdbc(url='jdbc:postgresql://taxi-trips.cdihiorubekt.eu-west-1.rds.amazonaws.com:5432/taxitrips',
                                      table='taxi_pickup_area_day_view_' + tripsYear,
                                      mode='overwrite',
                                      properties={'user': 'albercn', 'password': 'K$chool_TFM'})
 
+"""
