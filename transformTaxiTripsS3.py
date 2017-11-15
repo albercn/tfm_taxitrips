@@ -20,22 +20,11 @@ if __name__ == "__main__":
     else:
         # Obtenemos año introducido como parametro
         tripsYear = sys.argv[1]
-"""
-sparkSession = SparkSession\
-        .builder \
-        .appName("Taxi-trips-batch")\
-        .getOrCreate()
-
-"""
-# OPCION HIVE
 
 sparkSession = SparkSession\
         .builder \
         .appName("Taxi-trips-batch")\
-        .config("spark.sql.warehouse.dir", 's3a://taxi-trips-tfm/hive/warehouse')\
-        .enableHiveSupport()\
         .getOrCreate()
-
 
 
 """
@@ -132,19 +121,13 @@ groupByCompanyDayHourArea = taxiTripsEnrich\
          F.countDistinct("taxi_id").alias("taxis")
          )
 
-# OPCIÓN HIVE
-
-groupByCompanyDayHourArea.write\
-    .option('path', 's3a://taxi-trips-tfm/transform-trips/companies_pickup_area_view_' + tripsYear)\
-    .saveAsTable('companies_pickup_area_view_' + tripsYear, mode='overwrite', format='parquet')
-"""
 # Escritura en BBDD
-groupByCompanyDayHourArea.write.jdbc(url='jdbc:postgresql://taxi-trips.cdihiorubekt.eu-west-1.rds.amazonaws.com:5432/taxitrips',
+groupByCompanyDayHourArea.write.jdbc(url='jdbc:postgresql://ip-172-31-24-236.eu-west-1.compute.internal:5432/taxitrips',
                                      table='companies_pickup_area_view_' + tripsYear,
                                      mode='overwrite',
-                                     properties={'user': 'albercn', 'password': 'K$chool_TFM'}
+                                     properties={'user': 'albercn', 'password': '4lbercn'}
                                      )
-"""
+
 
 # Agrupación por fecha, hora y area de inicio
 groupByDayHourArea = groupByCompanyDayHourArea\
@@ -164,17 +147,12 @@ groupByDayHourArea = groupByCompanyDayHourArea\
          F.countDistinct("taxis").alias("taxis")
          )
 
-groupByDayHourArea.write\
-    .option('path', 's3a://taxi-trips-tfm/transform-trips/pickup_area_view_' + tripsYear)\
-    .saveAsTable('pickup_area_view_' + tripsYear, mode='overwrite', format='parquet')
-
-"""
 # Escritura en BBDD
-groupByDayHourArea.write.jdbc(url='jdbc:postgresql://taxi-trips.cdihiorubekt.eu-west-1.rds.amazonaws.com:5432/taxitrips',
+groupByDayHourArea.write.jdbc(url='jdbc:postgresql://ip-172-31-24-236.eu-west-1.compute.internal:5432/taxitrips',
                               table='pickup_area_view_' + tripsYear,
                               mode='overwrite',
-                              properties={'user': 'albercn', 'password': 'K$chool_TFM'})
-"""
+                              properties={'user': 'albercn', 'password': '4lbercn'})
+
 
 # Agrupación por fecha, taxi, empresa y zona
 groupByDayTaxiCompanyArea = taxiTripsEnrich\
@@ -195,14 +173,10 @@ groupByDayTaxiCompanyArea = taxiTripsEnrich\
          F.count("trip_id").alias("trips")
          )
 
-groupByDayTaxiCompanyArea \
-    .write.saveAsTable('taxi_pickup_area_day_view_' + tripsYear, mode='overwrite', format='parquet')
-
-"""
 # Escritura en BBDD
-groupByDayTaxiCompanyArea.write.jdbc(url='jdbc:postgresql://taxi-trips.cdihiorubekt.eu-west-1.rds.amazonaws.com:5432/taxitrips',
+groupByDayTaxiCompanyArea.write.jdbc(url='jdbc:postgresql://ip-172-31-24-236.eu-west-1.compute.internal:5432/taxitrips',
                                      table='taxi_pickup_area_day_view_' + tripsYear,
                                      mode='overwrite',
-                                     properties={'user': 'albercn', 'password': 'K$chool_TFM'})
+                                     properties={'user': 'albercn', 'password': '4lbercn'})
 
-"""
+
