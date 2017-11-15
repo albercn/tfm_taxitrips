@@ -1,7 +1,7 @@
 {
   "type": "kafka",
   "dataSchema": {
-    "dataSource": "taxi-trips-2",
+    "dataSource": "taxi-trips",
     "parser": {
       "type": "string",
       "parseSpec": {
@@ -82,7 +82,7 @@
     ],
     "granularitySpec": {
       "type": "uniform",
-      "segmentGranularity": "PT15M",
+      "segmentGranularity": "fifteen_minute",
       "queryGranularity": "NONE"
     }
   },
@@ -93,7 +93,7 @@
   "ioConfig": {
     "topic": "druidTopic",
     "consumerProperties": {
-      "bootstrap.servers": "localhost:9092"
+      "bootstrap.servers": "172.31.33.15:9092,172.31.38.165:9092"
     },
     "taskCount": 1,
     "replicas": 1,
