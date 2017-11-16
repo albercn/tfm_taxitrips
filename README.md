@@ -12,9 +12,9 @@ Se quiere disponer un sistema con el que poder:
 
 ## Arquitectura
 
-* Para el almacenamiento y  procesamiento de los datos enviados por en tiempo real por los taxi se van han utilizado: Apache Kafka,  Apache Spark, Druid y S3.
-* Para el alamcenamiento y procesamiento del historico se van a utilizar: Apache Spark, S3 y PostgreSQL.
-* Para la visulización se va a utilizar: Apache Superset.
+* Para el almacenamiento y  procesamiento de los datos enviados por los taxis en tiempo real: Apache Kafka,  Apache Spark, Druid y S3.
+* Para el alamcenamiento y procesamiento del histórico: Apache Spark, S3 y PostgreSQL.
+* Para la visualización: Apache Superset.
  
 
 ![](https://github.com/albercn/tfm_taxitrips/blob/master/Arquitectura%20tfm_Taxitrips.jpg?raw=true)
