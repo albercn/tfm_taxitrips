@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 # Este archivo usa el encoding: utf-8
 
+"""
+Proceso para la creación del "maestro" de areas, a partir de los viajes en taxi de 2017.
+
+"Area_Number", "Community", "Area_Centroid_Latitude", "Area_Centroid_Longitude" y "The_Geom"
+"""
+
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import StringType, TimestampType, IntegerType, StructField, StructType, DoubleType
