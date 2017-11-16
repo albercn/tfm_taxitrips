@@ -1,7 +1,15 @@
 #!/usr/bin/env python
 # Este archivo usa el encoding: utf-8
 
+"""
+Proceso para la ingesta de los ficheros de históricos en en S3 (AWS) o HDFS (local) en formato parquet,
+para ser transformados posteriormente.
+"""
+
 from __future__ import print_function
+
+# Importación del fichero de configuración
+import taxi_trips_config as cfg
 
 import sys
 
@@ -18,6 +26,7 @@ if __name__ == "__main__":
 # Obtenemos el año de los parametros de entrada
 year = sys.argv[1]
 
+# Creación de la SparkSession
 sparkSession = SparkSession\
                 .builder\
                 .appName("IngestaHistoricoTaxiTrips") \
@@ -52,13 +61,13 @@ schemaTaxiTrips = StructType([
     StructField("dropoff_centroid_location", StringType(), True)
 ])
 
-filePath = "file:///home/albercn/PycharmProjects/TFM_TaxiTrips/data_source/" + year + "/"
-
+# Lectura de los datos de los viajes en taxi
+filePath = cfg.csv_input_path + year + "/"
 taxiTripsRaw = sparkSession.read.csv(path=filePath, header=True,
                                      schema=schemaTaxiTrips,
                                      timestampFormat="MM/dd/yyyy hh:mm:ss a",
                                      mode="DROPMALFORMED")
-
+# Limpieza de los datos
 taxiTrips = taxiTripsRaw.select(
     "trip_id",
     "taxi_id",
@@ -87,7 +96,8 @@ taxiTrips = taxiTripsRaw.select(
     F.month(taxiTripsRaw["trip_start_timestamp"]).alias("month")
 )
 
-taxiTrips.write.parquet(path="hdfs://localhost:9000/TaxiTrips/rawEvents",
+# Escritura de los datos transformados en S3 (AWS) o HDFS (local), particionados por año y mes
+taxiTrips.write.parquet(path=cfg.trips_path,
                         mode="append",
                         partitionBy=["year", "month"])
 

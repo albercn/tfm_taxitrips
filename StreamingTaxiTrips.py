@@ -1,31 +1,21 @@
 #!/usr/bin/env python
 # Este archivo usa el encoding: utf-8
 
-from __future__ import print_function
-
-import sys
+# Importación del fichero de configuración
+import taxi_trips_config as cfg
 
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StringType, TimestampType, IntegerType, StructField, StructType
 from pyspark.sql.functions import from_json, regexp_replace, to_json, struct, year, month
 
-
-# Validación del número de parametros de entrada introducidos
-if __name__ == "__main__":
-    if len(sys.argv) != 4:
-        print("El número de parametros indicados no es correcto. Use: StrucuredStreaming.py <broker> <inTopic> <outTopic>", file=sys.stderr)
-        exit(-1)
-
-# Obtenemos la url del broker y el topic de entrada
-brokers, inTopic, outTopic = sys.argv[1:]
-
+# Creación de la SparkSession
 sparkSession = SparkSession\
         .builder\
         .appName("taxi-trips-streaming")\
         .getOrCreate()
 
-# Lectura del fichero con los areas que utilizaremos para enriquecer los datos de los viajes leidos de kafka
-# Creamos el esquema del dataframe
+# Lectura del fichero con los areas que utilizaremos para enriquecer los datos de los viajes leídos de kafka
+# Creación el esquema del dataframe
 schemaAreas = StructType([
     StructField("area_number", IntegerType(), False),
     StructField("community", StringType(), False),
@@ -34,7 +24,7 @@ schemaAreas = StructType([
     StructField("the_geom", StringType(), True)
 ])
 # Lectura del fichero
-areas = sparkSession.read.csv(path="hdfs://localhost:9000/TaxiTrips/areas/",
+areas = sparkSession.read.csv(path=cfg.area_path,
                               header=True,
                               schema=schemaAreas,
                               mode="DROPMALFORMED")
@@ -54,7 +44,7 @@ dropoffAreas = areas.select(
     areas["area_centroid_longitude"].alias('dropoff_centroid_longitude')
 )
 
-
+# Obtención de kafka de los mensajes con la información de los viajes
 # Definición del esquema del json
 schemaJsonTaxiTrips = StructType()\
     .add("payment_type", StringType())\
@@ -89,16 +79,18 @@ jsonOptions = {"timestampFormat": tripTimestampFormat}
 kst = sparkSession\
         .readStream\
         .format("kafka")\
-        .option("kafka.bootstrap.servers", brokers)\
-        .option("subscribe", inTopic)\
+        .option("kafka.bootstrap.servers", cfg.kafka_brokers)\
+        .option("subscribe", cfg.kafka_inTopic)\
         .option("failOnDataLoss", False)\
         .load()\
         .selectExpr("CAST(value AS STRING)")
 
+# Parseo del mensaje
 parsed = kst.select(from_json(kst.value, schemaJsonTaxiTrips, jsonOptions).alias("parsed_value"))
-
+# Obtención de los campos incluidos en el mensaje
 taxiTripsRaw = parsed.select("parsed_value.*")\
 
+# Limpieza de los datos
 taxiTrips = taxiTripsRaw.select(
     "trip_id",
     "taxi_id",
@@ -127,7 +119,7 @@ taxiTrips = taxiTripsRaw.select(
     month(taxiTripsRaw["trip_start_timestamp"]).alias("month")
 )
 
-# Selección los campos que se enviarán a través de kafka
+# Selección los campos que se enviarán a Druid través de kafka
 taxiTripsToKafka = taxiTrips.select("trip_id",
             "taxi_id",
             "company",
@@ -144,19 +136,19 @@ taxiTripsToKafka = taxiTrips.select("trip_id",
             "trip_total"
             )
 
-# Enriquecemos el Stream con los nombres de los areas de inicio y fin, y sus puntos centrales(lat. y long.)
+# Enriquecimiento del Stream con los nombres de los areas de inicio y fin, y sus puntos centrales(lat. y long.)
 taxiTripsEnrich = taxiTripsToKafka.join(pickupAreas, 'pickup_community_area')\
     .join(dropoffAreas, 'dropoff_community_area')
 
-# Inicio de la query que escribe el resultado a kafka
+# Inicio de la query que escribe el resultado del enriquecimiennto a kafka
 queryToKafka = taxiTripsEnrich\
     .select(taxiTripsEnrich["taxi_id"].cast('string').alias("key"),
             to_json(struct("*")).alias("value"))\
     .writeStream \
     .format("kafka") \
-    .option("kafka.bootstrap.servers", brokers) \
-    .option("topic", outTopic) \
-    .option("checkpointLocation", "hdfs://localhost:9000/TaxiTrips/checkpointKafka") \
+    .option("kafka.bootstrap.servers", cfg.kafka_brokers) \
+    .option("topic", cfg.kafka_outTopic) \
+    .option("checkpointLocation", cfg.checkpointKafka_path) \
     .outputMode("Append") \
     .start()
 
@@ -165,8 +157,8 @@ queryToHDFS = taxiTrips.writeStream \
         .format("parquet") \
         .trigger(processingTime='15 minutes') \
         .partitionBy("year", "month") \
-        .option("path", "hdfs://localhost:9000/TaxiTrips/rawEvents") \
-        .option("checkpointLocation", "hdfs://localhost:9000/TaxiTrips/checkpointHDFS") \
+        .option("path", cfg.trips_path) \
+        .option("checkpointLocation", cfg.checkpointHDFS_path) \
         .outputMode("Append") \
         .start()
 
