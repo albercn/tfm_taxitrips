@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # Este archivo usa el encoding: utf-8
 
+# Importación del fichero de configuración
+import taxi_trips_config as cfg
+
 import os
 import time
 import datetime
@@ -8,10 +11,11 @@ import csv
 import json
 from kafka import KafkaProducer
 
-#producer = KafkaProducer(bootstrap_servers='ec2-54-194-66-254.eu-west-1.compute.amazonaws.com:9092,ec2-34-240-84-105.eu-west-1.compute.amazonaws.com:9092')
-producer = KafkaProducer(bootstrap_servers='localhost:9092')
+# Creación de un productor de kafka
+producer = KafkaProducer(bootstrap_servers=cfg.kafka_brokers)
+# Lectura del fichero  con la información de los taxis de 2017 (hasta Julio)
 fileName = os.path.join('data_source/2017', 'Taxi_Trips_2017.csv')
-
+# Apertura del fichero
 infile = open(fileName, 'r')
 
 fieldnames = ("trip_id", "taxi_id", "trip_start_timestamp", "trip_end_timestamp", "trip_seconds", "trip_miles",
@@ -22,21 +26,28 @@ fieldnames = ("trip_id", "taxi_id", "trip_start_timestamp", "trip_end_timestamp"
 reader = csv.DictReader(infile, fieldnames)
 i = 0
 for row in reader:
+    # Filtrado de la cabecera del fichero
     if i != 0:
+
+        # Inicialización a 0 del valor del campo trip_seconds cuando no esta informado.
         if row['trip_seconds'] == '':
             row['trip_seconds'] = 0
+
+        # Captura del timestamp actual, para informar el campos trip_start_timestamp y suma al mismo
+        # de la duración del viaje informada en el campo trip_seconds para informarlo como trip_end_timestamp
         duration = datetime.timedelta(seconds=int(row['trip_seconds']))
         t = datetime.datetime.utcnow()
         end = t + duration
-
         row['trip_start_timestamp'] = t.strftime("%m/%d/%Y %I:%M:%S %p")
         row['trip_end_timestamp'] = end.strftime("%m/%d/%Y %I:%M:%S %p")
 
+        # Formateo del mensajea JSON
         strLineJson = json.dumps(row)
 
-        producer.send(topic="rawTopic", key=row['taxi_id'], value=strLineJson)
+        # Envío del mensaje a kafka
+        producer.send(topic=cfg.kafka_inTopic, key=row['taxi_id'], value=strLineJson)
     i = i + 1
     
-    time.sleep(1)
-
+    time.sleep(0.05)
+# Cierre del fichero
 infile.close()
