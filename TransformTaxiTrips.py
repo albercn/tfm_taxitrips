@@ -26,17 +26,6 @@ sparkSession = SparkSession\
         .appName("Taxi-trips-batch")\
         .getOrCreate()
 
-"""
-OPCION HIVE
-
-sparkSession = SparkSession\
-        .builder \
-        .appName("Taxi-trips-batch")\
-        .config("spark.sql.warehouse.dir", '/home/albercn/opt/hive/warehouse')\
-        .enableHiveSupport()\
-        .getOrCreate()
-
-"""
 
 """
 Lectura de los datos de los viajes de taxi de hdfs
@@ -128,11 +117,7 @@ groupByCompanyDayHourArea = taxiTripsEnrich\
          F.count("trip_id").alias("trips"),
          F.countDistinct("taxi_id").alias("taxis")
          )
-"""
-OPCIÓN HIVE
 
-groupByCompanyDayHourArea.write.saveAsTable('companies_pickup_area_view_' + tripsYear, mode='overwrite')
-"""
 # Escritura en BBDD
 groupByCompanyDayHourArea.write.jdbc(url='jdbc:postgresql://localhost:5432/taxitrips',
                                      table='companies_pickup_area_view_' + tripsYear,
