@@ -1,0 +1,102 @@
+{
+  "type": "kafka",
+  "dataSchema": {
+    "dataSource": "taxi-trips",
+    "parser": {
+      "type": "string",
+      "parseSpec": {
+        "format": "json",
+        "timestampSpec": {
+          "column": "trip_start_timestamp",
+          "format": "auto"
+        },
+        "dimensionsSpec": {
+          "dimensions": [
+            "taxi_id",
+            "company",
+            "pickup_community_area",
+            "pickup_community_area_name",
+            "pickup_centroid_latitude",
+            "pickup_centroid_longitude",
+            "dropoff_community_area",
+            "dropoff_community_area_name",
+            "dropoff_centroid_latitude",
+            "dropoff_centroid_longitude"
+          ],
+        "dimensionExclusions": [
+            "trip_id",
+            "trip_seconds",
+            "trip_miles",
+            "fare",
+            "tips",
+            "tolls",
+            "extras",
+            "trip_total",
+            "trip_start_timestamp",
+            "trip_end_timestamp"
+          ],
+        "spatialDimensions": []
+        }
+      }
+    },
+    "metricsSpec": [
+      {
+        "name": "trips",
+        "type": "count"
+      },
+      {
+        "name": "triptotal_sum",
+        "fieldName": "trip_total",
+        "type": "doubleSum"
+      },
+      {
+        "name": "trip_seconds_sum",
+        "fieldName": "trip_seconds",
+        "type": "doubleSum"
+      },
+      {
+        "name": "trip_miles_sum",
+        "fieldName": "trip_miles",
+        "type": "doubleSum"
+      },
+      {
+        "name": "fare_sum",
+        "fieldName": "fare",
+        "type": "doubleSum"
+      },
+      {
+        "name": "tips_sum",
+        "fieldName": "tips",
+        "type": "doubleSum"
+      },
+      {
+        "name": "tolls_sum",
+        "fieldName": "tolls",
+        "type": "doubleSum"
+      },  
+      {
+        "name": "extras_sum",
+        "fieldName": "extras",
+        "type": "doubleSum"
+      }     
+    ],
+    "granularitySpec": {
+      "type": "uniform",
+      "segmentGranularity": "fifteen_minute",
+      "queryGranularity": "NONE"
+    }
+  },
+  "tuningConfig": {
+    "type": "kafka",
+    "maxRowsPerSegment": 5000000
+  },
+  "ioConfig": {
+    "topic": "druidTopic",
+    "consumerProperties": {
+      "bootstrap.servers": "172.31.33.15:9092,172.31.38.165:9092"
+    },
+    "taskCount": 1,
+    "replicas": 1,
+    "taskDuration": "PT15M"
+  }
+}
