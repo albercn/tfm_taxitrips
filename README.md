@@ -1,5 +1,5 @@
-# tfm_taxitrips
-TFM Master de arquitectura Big data Kschool
+# TFM Taxi Trips
+Sistema para el procesamiento y análisis de viajes en taxi.
 
 ## Requisitos
 Se quiere disponer un sistema con el que poder:
@@ -9,7 +9,6 @@ Se quiere disponer un sistema con el que poder:
 * Analizar el histórico completo de datos, para poder ejecutar consultas y obtener distintas estadísticas de actividad de los taxis. Por ejemplo, duración y coste medio de los viajes, empresas de taxis con mayor volumen de negocio, zonas donde más viajes empiezan, zonas en las que terminan más viajes. 
 * Consultar la información, tanto la tratada en tiempo real como la del histórico, desde una herramienta de visualización. Mostrando diferentes DashBoards.
 
-
 ## Arquitectura
 
 * Para el almacenamiento y  procesamiento de los datos enviados por los taxis en tiempo real: Apache Kafka,  Apache Spark, Druid y S3.
@@ -18,6 +17,33 @@ Se quiere disponer un sistema con el que poder:
  
 
 ![](https://github.com/albercn/tfm_taxitrips/blob/master/Arquitectura%20tfm_Taxitrips.jpg?raw=true)
+
+## Formato de los mensajes
+{
+"trip_id",
+"taxi_id",
+"trip_start_timestamp",
+"trip_end_timestamp",
+"trip_seconds",
+"trip_miles",
+"pickup_census_tract",
+"dropoff_census_tract",
+"pickup_community_area",
+"dropoff_community_area",
+"fare",
+"tips",
+"tolls",
+"extras",
+"trip_total",
+"payment_type",
+"company",
+"pickup_centroid_latitude",
+"pickup_centroid_longitude",
+"pickup_centroid_location",
+"dropoff_centroid_latitude",
+"dropoff_centroid_longitude",
+"dropoff_centroid_location"
+}
 
 ## Procesos Spark
 
