@@ -1,7 +1,7 @@
 # TFM Taxi Trips 
 Sistema para el procesamiento y análisis de viajes en taxi.
 
-[TFM-KSchool_v0.1](tfm_taxitrips/documentacion/TFM-KSchool_v0.1.pdf )
+[TFM-KSchool_v0.1](/documentacion/TFM-KSchool_v0.1.pdf )
 
 ## Requisitos
 Se quiere disponer un sistema con el que poder:
