@@ -45,7 +45,7 @@ schemaTaxiTrips = StructType([
     StructField("Dropoff_Centroid_Location", StringType(), True)
 ])
 
-viajes = sparkSession.read.csv(path="file:///home/albercn/PycharmProjects/TFM_TaxiTrips/data_source/2017/", header=True,
+viajes = sparkSession.read.csv(path="file:///home/acuesta/PycharmProjects/tfm_taxitrips/data_source/2017/", header=True,
                                schema=schemaTaxiTrips, timestampFormat="MM/dd/yyyy hh:mm:ss a", mode="DROPMALFORMED")
 
 areasLoc = viajes.filter(viajes.Company.isNotNull() & viajes.Pickup_Community_Area.isNotNull()
@@ -70,11 +70,11 @@ schemaAreas = StructType([
     StructField("Shape_Len", StringType(), True)
 ])
 # Lectura del fichero
-areas = sparkSession.read.csv(path="file:///home/albercn/PycharmProjects/TFM_TaxiTrips/data_source/CommAreas.csv",
+areas = sparkSession.read.csv(path="file:///home/acuesta/PycharmProjects/tfm_taxitrips/data_source/CommAreas.csv",
                               header=False, schema=schemaAreas, mode="DROPMALFORMED", sep=";")
 
 areasComplete = areas.join(areasLoc, "Area_Number").select("Area_Number", "Community", "Area_Centroid_Latitude",
                                                            "Area_Centroid_Longitude", "The_Geom")
 
-areasComplete.coalesce(1).write.csv(path="file:///home/albercn/PycharmProjects/TFM_TaxiTrips/data_source/areasComplete",
+areasComplete.coalesce(1).write.csv(path="file:///home/acuesta/PycharmProjects/tfm_taxitrips/data_source/areasComplete",
                                     mode='overwrite')

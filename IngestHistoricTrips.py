@@ -9,7 +9,7 @@ para ser transformados posteriormente.
 from __future__ import print_function
 
 # Importación del fichero de configuración
-import taxi_trips_config as cfg
+import taxi_trips_config_local as cfg
 
 import sys
 
